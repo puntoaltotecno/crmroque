@@ -101,11 +101,41 @@ $user_id        = $_SESSION['user_id'] ?? 0;
                 </div>
             </div>
             
+            <!-- BARRA ACCIONES MASIVAS (solo admin, aparece al seleccionar) -->
+            <?php if($rol_usuario === 'admin'): ?>
+            <div id="barraMasiva" class="hidden bg-blue-600 text-white px-8 py-4 rounded-[2rem] flex items-center gap-6 flex-wrap shadow-xl">
+                <span id="countSeleccionados" class="text-xs font-black uppercase tracking-widest">0 seleccionados</span>
+                <div class="flex gap-3 ml-auto flex-wrap items-center">
+                    <select id="masivo_operador" class="px-4 py-2 rounded-xl text-xs font-black text-slate-800 outline-none cursor-pointer">
+                        <option value="">👤 Sin Asignar</option>
+                    </select>
+                    <button onclick="accionMasiva('asignar_operador')" class="bg-white text-blue-600 px-5 py-2 rounded-xl text-[10px] font-black uppercase hover:bg-blue-50 transition">Asignar Op.</button>
+                    <select id="masivo_estado" class="px-4 py-2 rounded-xl text-xs font-black text-slate-800 outline-none cursor-pointer">
+                        <option value="promesa">Promesa</option>
+                        <option value="no_responde">No responde</option>
+                        <option value="no_corresponde">No corresponde</option>
+                        <option value="llamar">Llamar</option>
+                        <option value="numero_baja">Número baja</option>
+                        <option value="al_dia">Al día</option>
+                        <option value="otro">Otro</option>
+                    </select>
+                    <button onclick="accionMasiva('cambiar_estado')" class="bg-white text-blue-600 px-5 py-2 rounded-xl text-[10px] font-black uppercase hover:bg-blue-50 transition">Cambiar Estado</button>
+                    <button onclick="accionMasiva('eliminar')" class="bg-rose-500 text-white px-5 py-2 rounded-xl text-[10px] font-black uppercase hover:bg-rose-600 transition">🗑 Eliminar</button>
+                    <button onclick="deseleccionarTodos()" class="bg-blue-500 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase hover:bg-blue-400 transition">✕</button>
+                </div>
+            </div>
+            <?php endif; ?>
+
             <div class="bg-white rounded-[3rem] shadow-sm border border-slate-100 overflow-hidden">
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm">
                         <thead class="bg-slate-50 border-b text-slate-400 font-black uppercase text-[10px] tracking-[0.2em]">
                             <tr>
+                                <?php if($rol_usuario === 'admin'): ?>
+                                <th class="px-4 py-6 text-center w-10">
+                                    <input type="checkbox" id="chkTodos" onchange="seleccionarTodos(this)" class="w-4 h-4 rounded accent-blue-600 cursor-pointer">
+                                </th>
+                                <?php endif; ?>
                                 <th class="px-8 py-6 text-left">Legajo / Doc</th>
                                 <th class="px-8 py-6 text-left">Razón Social / Sucursal</th>
                                 <th class="px-8 py-6 text-center">Cuotas / Días</th>
@@ -225,11 +255,12 @@ $user_id        = $_SESSION['user_id'] ?? 0;
                     opBadge = c.operador_asignado ? `<p class="mt-2 text-[9px] font-black text-blue-500 uppercase tracking-widest">👤 ${c.operador_asignado.split(' ')[0]}</p>` : `<p class="mt-2 text-[8px] font-bold text-slate-300 uppercase tracking-widest">Sin asignar</p>`;
                 }
                 return `<tr class="hover:bg-blue-50/50 cursor-pointer semaforo-${c.semaforo} transition" ondblclick='openModal(${JSON.stringify(c).replace(/'/g, "\\'")})'>
+                    ${isAdmin ? `<td class="px-4 py-6 text-center" onclick="event.stopPropagation()">${c.legajo ? `<input type="checkbox" class="chk-cliente w-4 h-4 rounded accent-blue-600 cursor-pointer" value="${c.legajo}" onchange="actualizarSeleccion()">` : ""}</td>` : ""}
                     <td class="px-8 py-6"><p class="font-black text-slate-800 text-sm uppercase">${c.legajo || 'S/L'}</p><p class="text-[9px] font-black text-slate-400 uppercase">${c.nro_documento}</p></td>
                     <td class="px-8 py-6"><p class="font-black uppercase text-slate-700 text-sm">${c.razon_social}</p><p class="text-[10px] font-bold text-blue-500 uppercase italic">${c.sucursal || 'Central'}</p></td>
                     <td class="px-8 py-6 text-center"><p class="font-bold text-slate-800 text-sm">${c.c_cuotas} Cuotas</p>${c.dias_atraso > 0 ? `<p class="text-[9px] font-black text-rose-500 uppercase">${c.dias_atraso} días</p>` : ''}</td>
                     <td class="px-8 py-6 text-right"><p class="font-black text-slate-900 text-base">$${total.toLocaleString('es-AR')}</p></td>
-                    <td class="px-8 py-6 text-center"><span class="px-5 py-2 rounded-full text-[10px] font-black uppercase ${{'promesa':'bg-blue-100 text-blue-700','no_responde':'bg-orange-100 text-orange-700','no_corresponde':'bg-red-100 text-red-700','llamar':'bg-emerald-100 text-emerald-700','numero_baja':'bg-slate-200 text-slate-600','otro':'bg-violet-100 text-violet-700'}[c.estado]||'bg-amber-100 text-amber-700'}">${(c.estado==='sin_gestion'?'pendiente':c.estado).replace(/_/g,' ')}</span><div class="flex justify-center">${opBadge}</div></td>
+                    <td class="px-8 py-6 text-center"><span class="px-5 py-2 rounded-full text-[10px] font-black uppercase ${{'promesa':'bg-blue-100 text-blue-700','no_responde':'bg-orange-100 text-orange-700','no_corresponde':'bg-red-100 text-red-700','llamar':'bg-emerald-100 text-emerald-700','numero_baja':'bg-slate-200 text-slate-600','otro':'bg-violet-100 text-violet-700','al_dia':'bg-teal-100 text-teal-700'}[c.estado]||'bg-amber-100 text-amber-700'}">${(c.estado==='sin_gestion'?'pendiente':c.estado).replace(/_/g,' ')}</span><div class="flex justify-center">${opBadge}</div></td>
                     <td class="px-8 py-6 text-center"><button onclick='event.stopPropagation(); openModal(${JSON.stringify(c).replace(/'/g, "\\'")})' class="bg-blue-600 text-white px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase hover:bg-blue-700 transition shadow-md">Gestionar</button></td>
                 </tr>`;
             }).join('');
@@ -277,7 +308,8 @@ $user_id        = $_SESSION['user_id'] ?? 0;
                 'no_corresponde':'bg-red-100 text-red-700',
                 'llamar':        'bg-emerald-100 text-emerald-700',
                 'numero_baja':   'bg-slate-200 text-slate-600',
-                'otro':          'bg-violet-100 text-violet-700'
+                'otro':          'bg-violet-100 text-violet-700',
+                'al_dia':        'bg-teal-100 text-teal-700'
             };
             const estadoBadge = h.estado 
                 ? `<span class="px-2 py-0.5 rounded-full text-[8px] font-black uppercase ${estadoColors[h.estado] || 'bg-slate-100 text-slate-600'}">${h.estado}</span>` 
@@ -397,6 +429,11 @@ $user_id        = $_SESSION['user_id'] ?? 0;
                     if (filtroOp) {
                         filtroOp.innerHTML = '<option value="">Todos los operadores</option>' + data.map(u => `<option value="${u.id}">${u.nombre.split(' ')[0]}</option>`).join('');
                     }
+                    // Llenar select de operadores en barra masiva
+                    const masivoOp = document.getElementById('masivo_operador');
+                    if (masivoOp) {
+                        masivoOp.innerHTML = '<option value="">👤 Sin Asignar</option>' + data.map(u => `<option value="${u.id}">${u.nombre.split(' ')[0]}</option>`).join('');
+                    }
                 } catch(e) {} 
             }
             load(); stats(); 
@@ -420,7 +457,7 @@ $user_id        = $_SESSION['user_id'] ?? 0;
                 if (d.success) {
                     const cid = fd.get('cliente_id'), legajoActual = document.getElementById('mLegajoRaw').value;
                     const hRes = await fetch(api_historial + cid + '&legajo=' + encodeURIComponent(legajoActual || '')), hData = await hRes.json();
-                    const estadoColors = {'promesa':'bg-blue-100 text-blue-700','no_responde':'bg-orange-100 text-orange-700','no_corresponde':'bg-red-100 text-red-700','llamar':'bg-emerald-100 text-emerald-700','numero_baja':'bg-slate-200 text-slate-600','otro':'bg-violet-100 text-violet-700'};
+                    const estadoColors = {'promesa':'bg-blue-100 text-blue-700','no_responde':'bg-orange-100 text-orange-700','no_corresponde':'bg-red-100 text-red-700','llamar':'bg-emerald-100 text-emerald-700','numero_baja':'bg-slate-200 text-slate-600','otro':'bg-violet-100 text-violet-700','al_dia':'bg-teal-100 text-teal-700'};
                     document.getElementById('mHis').innerHTML = hData.map(h => {
                         let fH = 'Fecha desconocida'; if(h.fecha && h.fecha.includes(' ')) { const p = h.fecha.split(' '); fH = `📅 ${p[0].split('-').reverse().join('/')} ${p[1]}`; }
                         const estadoBadge = h.estado ? `<span class="px-2 py-0.5 rounded-full text-[8px] font-black uppercase ${estadoColors[h.estado]||'bg-slate-100 text-slate-600'}">${h.estado}</span>` : '';
@@ -452,6 +489,65 @@ $user_id        = $_SESSION['user_id'] ?? 0;
         rows.forEach(row => { const cols = row.querySelectorAll("td"); const data = Array.from(cols).slice(0, 5).map(td => '"' + td.innerText.replace(/,/g, ".").replace(/\n/g, " ") + '"'); csvContent += data.join(",") + "\n"; });
         const blob = new Blob(["\ufeff" + csvContent], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a"); link.setAttribute("href", URL.createObjectURL(blob)); link.setAttribute("download", `cartera.csv`); link.click();
+    }
+
+    // ── ACCIONES MASIVAS ─────────────────────────────────────────────────────
+    function getSeleccionados() {
+        return Array.from(document.querySelectorAll('.chk-cliente:checked')).map(c => c.value);
+    }
+    function actualizarSeleccion() {
+        const seleccionados = getSeleccionados();
+        const barra = document.getElementById('barraMasiva');
+        const count = document.getElementById('countSeleccionados');
+        if (seleccionados.length > 0) {
+            barra.classList.remove('hidden');
+            barra.classList.add('flex');
+            count.innerText = seleccionados.length + ' seleccionado' + (seleccionados.length > 1 ? 's' : '');
+        } else {
+            barra.classList.add('hidden');
+            barra.classList.remove('flex');
+        }
+    }
+    function seleccionarTodos(chk) {
+        document.querySelectorAll('.chk-cliente').forEach(c => c.checked = chk.checked);
+        actualizarSeleccion();
+    }
+    function deseleccionarTodos() {
+        document.querySelectorAll('.chk-cliente').forEach(c => c.checked = false);
+        const chkTodos = document.getElementById('chkTodos');
+        if (chkTodos) chkTodos.checked = false;
+        actualizarSeleccion();
+    }
+    async function accionMasiva(accion) {
+        const legajos = getSeleccionados();
+        if (legajos.length === 0) return;
+
+        if (accion === 'eliminar') {
+            if (!confirm(`¿Eliminar ${legajos.length} cliente(s) y todo su historial? Esta acción no se puede deshacer.`)) return;
+        }
+
+        const fd = new FormData();
+        fd.append('accion', accion);
+        fd.append('legajos', JSON.stringify(legajos));
+
+        if (accion === 'asignar_operador') {
+            fd.append('operador_id', document.getElementById('masivo_operador').value);
+        }
+        if (accion === 'cambiar_estado') {
+            fd.append('estado', document.getElementById('masivo_estado').value);
+        }
+
+        try {
+            const res = await fetch('api_masivo.php', { method: 'POST', body: fd });
+            const d = await res.json();
+            if (d.success) {
+                deseleccionarTodos();
+                load(document.getElementById('search').value);
+                stats();
+            } else {
+                alert('Error: ' + d.message);
+            }
+        } catch(e) { alert('Error de conexión.'); }
     }
 
     async function subirCSV(input) { if(!input.files[0]) return; const fd = new FormData(); fd.append('file', input.files[0]); const res = await fetch(api_importar, {method:'POST', body:fd}), d = await res.json(); if(d.success) { alert(d.count); load(); stats(); } }
