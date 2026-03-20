@@ -132,8 +132,13 @@ try {
     $params = ['q' => "%$q%"];
 
     if (!empty($f_estado)) {
-        $where_extra .= " AND gest.estado = :estado";
-        $params[':estado'] = $f_estado;
+        if ($f_estado === 'sin_gestion') {
+            // Pendiente = clientes SIN ninguna gestión registrada
+            $where_extra .= " AND gest.estado IS NULL";
+        } else {
+            $where_extra .= " AND gest.estado = :estado";
+            $params[':estado'] = $f_estado;
+        }
     }
     if ($f_operador > 0) {
         $where_extra .= " AND a.usuario_id = :f_op";

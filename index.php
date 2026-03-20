@@ -87,6 +87,8 @@ $user_id        = $_SESSION['user_id'] ?? 0;
                         <option value="llamar">Llamar</option>
                         <option value="numero_baja">Número baja</option>
                         <option value="otro">Otro</option>
+                        <option value="al_dia">Al día</option>
+                        <option value="sin_gestion">Pendiente</option>
                     </select>
                     <?php if($rol_usuario === 'admin'): ?>
                     <select id="filtroOperador" onchange="loadFiltros()" class="px-5 py-4 bg-white border border-slate-200 rounded-[2rem] text-xs font-black uppercase outline-none shadow-sm cursor-pointer text-slate-600">
@@ -236,7 +238,7 @@ $user_id        = $_SESSION['user_id'] ?? 0;
     <script>
     const currentUserId = <?= $user_id ?>, isAdmin = <?= $rol_usuario === 'admin' ? 'true' : 'false' ?>;
     let operadoresList = [];
-    const api_clientes = 'api_clientes.php?action=', api_gestion = 'api_gestion.php', api_historial = 'api_historial.php?id=', api_usuarios = 'api_usuarios.php';
+    const api_clientes = 'api_clientes.php?action=', api_gestion = 'api_gestion.php', api_historial = 'api_historial.php?id=', api_usuarios = 'api_usuarios.php', api_importar = 'api_importar_csv.php';
 
     // Función principal de carga con soporte de filtros
     const load = async (q = '', estado = '', operador_id = '') => {
@@ -550,7 +552,53 @@ $user_id        = $_SESSION['user_id'] ?? 0;
         } catch(e) { alert('Error de conexión.'); }
     }
 
-    async function subirCSV(input) { if(!input.files[0]) return; const fd = new FormData(); fd.append('file', input.files[0]); const res = await fetch(api_importar, {method:'POST', body:fd}), d = await res.json(); if(d.success) { alert(d.count); load(); stats(); } }
+    async function subirCSV(input) {
+        if(!input.files[0]) return;
+        
+        // Mostrar overlay de progreso
+        const overlay = document.createElement('div');
+        overlay.id = 'importOverlay';
+        overlay.innerHTML = `
+            <div style="position:fixed;inset:0;background:rgba(15,23,42,0.7);backdrop-filter:blur(4px);z-index:9999;display:flex;align-items:center;justify-content:center;">
+                <div style="background:white;border-radius:2rem;padding:2.5rem 3rem;text-align:center;min-width:320px;box-shadow:0 25px 50px rgba(0,0,0,0.3);">
+                    <div style="width:56px;height:56px;border:5px solid #e2e8f0;border-top-color:#2563eb;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 1.5rem;"></div>
+                    <p style="font-weight:900;font-size:14px;color:#1e293b;text-transform:uppercase;letter-spacing:.1em;margin-bottom:.5rem;">Importando clientes...</p>
+                    <p id="importStatus" style="font-size:12px;color:#64748b;font-weight:600;">Procesando archivo, por favor esperá.</p>
+                </div>
+            </div>
+            <style>@keyframes spin{to{transform:rotate(360deg)}}</style>`;
+        document.body.appendChild(overlay);
+
+        const fd = new FormData();
+        fd.append('file', input.files[0]);
+        input.value = "";
+
+        try {
+            const res = await fetch(api_importar, { method: 'POST', body: fd });
+            const d = await res.json();
+            document.body.removeChild(overlay);
+            if (d.success) {
+                // Mostrar resultado en un modal prolijo
+                const msg = d.count || 'Proceso completado.';
+                const resDiv = document.createElement('div');
+                resDiv.innerHTML = `
+                    <div style="position:fixed;inset:0;background:rgba(15,23,42,0.7);backdrop-filter:blur(4px);z-index:9999;display:flex;align-items:center;justify-content:center;">
+                        <div style="background:white;border-radius:2rem;padding:2.5rem 3rem;text-align:center;min-width:340px;max-width:480px;box-shadow:0 25px 50px rgba(0,0,0,0.3);">
+                            <div style="width:56px;height:56px;background:#dcfce7;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1.5rem;font-size:24px;">✅</div>
+                            <p style="font-weight:900;font-size:14px;color:#1e293b;text-transform:uppercase;letter-spacing:.1em;margin-bottom:1rem;">Importación completada</p>
+                            <p style="font-size:13px;color:#475569;font-weight:600;white-space:pre-line;margin-bottom:1.5rem;">${msg}</p>
+                            <button onclick="this.closest('div').parentElement.parentElement.remove();load();stats();" style="background:#2563eb;color:white;border:none;padding:.75rem 2rem;border-radius:1rem;font-weight:900;font-size:11px;text-transform:uppercase;cursor:pointer;letter-spacing:.1em;">Aceptar</button>
+                        </div>
+                    </div>`;
+                document.body.appendChild(resDiv);
+            } else {
+                alert('Error en la importación: ' + (d.message || d.count || 'Error desconocido'));
+            }
+        } catch(e) {
+            if(document.getElementById('importOverlay')) document.body.removeChild(overlay);
+            alert('Error de conexión al importar. Verificá que el archivo sea válido.');
+        }
+    }
     async function subirCSVAsignaciones(input) { if(!input.files[0]) return; const fd = new FormData(); fd.append('file', input.files[0]); try { const res = await fetch('api_importar_asignaciones.php', {method:'POST', body:fd}), d = await res.json(); if(d.success) { alert(d.count); load(); stats(); } } catch(e) {} }
     </script>
 </body>
