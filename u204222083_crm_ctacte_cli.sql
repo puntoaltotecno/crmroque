@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 20-03-2026 a las 00:17:54
+-- Tiempo de generación: 21-03-2026 a las 00:22:27
 -- Versión del servidor: 10.4.11-MariaDB
 -- Versión de PHP: 7.2.28
 
@@ -68,7 +68,7 @@ CREATE TABLE `gestiones_historial` (
   `cliente_id` int(11) NOT NULL,
   `legajo` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `usuario_id` int(11) NOT NULL,
-  `estado` enum('promesa','no_responde','no_corresponde','llamar','numero_baja','otro') COLLATE utf8mb4_unicode_ci DEFAULT 'promesa',
+  `estado` enum('promesa','no_responde','no_corresponde','llamar','numero_baja','otro','al_dia') COLLATE utf8mb4_unicode_ci DEFAULT 'promesa',
   `fecha_promesa` date DEFAULT NULL,
   `monto_promesa` decimal(10,2) DEFAULT NULL,
   `observaciones` text COLLATE utf8mb4_unicode_ci DEFAULT NULL,
