@@ -4,17 +4,31 @@
  */
 require_once 'db.php';
 header('Content-Type: application/json');
-if (!isset($_SESSION['user_id']) || $_SESSION['user_rol'] !== 'admin') exit;
+
+if (!isset($_SESSION['user_id'])) exit;
+
+$rol_actual = $_SESSION['user_rol'];
+
+// Solo Admin y Colaborador pueden ver usuarios
+if ($rol_actual !== 'admin' && $rol_actual !== 'colaborador') exit;
 
 $action = $_GET['action'] ?? '';
 
 if ($action === 'list') {
     echo json_encode($pdo->query("SELECT id, nombre, email as usuario, rol FROM usuarios ORDER BY nombre ASC")->fetchAll());
-} elseif ($action === 'delete') {
+} 
+elseif ($action === 'delete') {
+    // Solo Admin puede borrar
+    if ($rol_actual !== 'admin') { echo json_encode(['success' => false, 'message' => 'Solo administradores.']); exit; }
+    
     $id = $_POST['id'];
     if($id != $_SESSION['user_id']) $pdo->prepare("DELETE FROM usuarios WHERE id = ?")->execute([$id]);
     echo json_encode(['success' => true]);
-} elseif ($action === 'save') {
+} 
+elseif ($action === 'save') {
+    // Solo Admin puede crear/editar
+    if ($rol_actual !== 'admin') { echo json_encode(['success' => false, 'message' => 'Solo administradores.']); exit; }
+
     $id = $_POST['id']; $nom = trim($_POST['nombre']); $mail = trim($_POST['usuario']); $pass = trim($_POST['clave']); $rol = $_POST['rol'];
     if(!empty($id)) {
         if(!empty($pass)) $pdo->prepare("UPDATE usuarios SET nombre=?, email=?, password=?, rol=? WHERE id=?")->execute([$nom, $mail, password_hash($pass, PASSWORD_DEFAULT), $rol, $id]);
@@ -24,3 +38,4 @@ if ($action === 'list') {
     }
     echo json_encode(['success' => true]);
 }
+?>

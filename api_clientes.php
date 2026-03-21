@@ -1,8 +1,6 @@
 <?php
 /**
  * ARCHIVO: api_clientes.php
- * ARQUITECTURA: estado, fecha_promesa y monto_promesa se leen desde la ÚLTIMA gestión
- * del historial (gestiones_historial), no desde la tabla clientes.
  */
 require_once 'db.php';
 
@@ -14,165 +12,92 @@ header('Content-Type: application/json');
 
 try {
     $action   = $_GET['action'] ?? 'search';
-    $is_admin = ($_SESSION['user_rol'] === 'admin');
+    $rol      = $_SESSION['user_rol'];
+    $can_see_all = ($rol === 'admin' || $rol === 'colaborador');
     $uid      = $_SESSION['user_id'];
 
-    // --------------------------------------------------------
-    // ACCIÓN: ASIGNAR CLIENTE A OPERADOR (Solo Admin)
-    // --------------------------------------------------------
-    if ($action === 'assign') {
-        if (!$is_admin) { echo json_encode(['success' => false, 'message' => 'No autorizado']); exit; }
-        
-        $legajo = trim($_POST['legajo'] ?? '');
-        $op_id  = trim($_POST['usuario_id'] ?? '');
+    $q          = $_GET['q'] ?? '';
+    $f_estado   = $_GET['estado'] ?? '';
+    $f_operador = isset($_GET['operador_id']) ? (int)$_GET['operador_id'] : 0;
 
-        if (empty($legajo)) {
-            echo json_encode(['success' => false, 'message' => 'El cliente no tiene legajo.']); exit;
-        }
+    $subquery_ultima = "SELECT g1.* FROM gestiones_historial g1
+                        JOIN (SELECT MAX(id) as max_id FROM gestiones_historial GROUP BY legajo) g2
+                        ON g1.id = g2.max_id";
 
-        try {
-            if ($op_id === '') {
-                $stmt = $pdo->prepare("DELETE FROM asignaciones WHERE legajo = ?");
-                $stmt->execute([$legajo]);
-            } else {
-                $stmt = $pdo->prepare("INSERT INTO asignaciones (legajo, usuario_id) VALUES (?, ?) ON DUPLICATE KEY UPDATE usuario_id = VALUES(usuario_id)");
-                $stmt->execute([$legajo, $op_id]);
-            }
-            echo json_encode(['success' => true]);
-        } catch (Exception $ex) {
-            echo json_encode(['success' => false, 'message' => 'BD Error: ' . $ex->getMessage()]);
-        }
-        exit;
-    }
-
-    // --------------------------------------------------------
-    // ACCIÓN: ESTADÍSTICAS SUPERIORES
-    // --------------------------------------------------------
-    if ($action === 'stats') {
-        try {
-            // Las promesas y mora ahora se cuentan desde el historial
-            if ($is_admin) {
-                $deuda = $pdo->query("SELECT SUM(total_vencido + mora) as total FROM clientes")->fetch()['total'] ?? 0;
-                
-                // Promesas: clientes cuya ÚLTIMA gestión es 'promesa'
-                $promesas = $pdo->query(
-                    "SELECT COUNT(DISTINCT g.legajo) as total 
-                     FROM gestiones_historial g
-                     INNER JOIN (
-                         SELECT legajo, MAX(fecha_gestion) as ultima 
-                         FROM gestiones_historial GROUP BY legajo
-                     ) ult ON g.legajo = ult.legajo AND g.fecha_gestion = ult.ultima
-                     WHERE g.estado = 'promesa'"
-                )->fetch()['total'] ?? 0;
-
-                $mora_stats = $pdo->query("SELECT COUNT(*) as total FROM clientes WHERE dias_atraso > 0")->fetch()['total'] ?? 0;
-            } else {
-                $deuda = $pdo->prepare("SELECT SUM(c.total_vencido + c.mora) as total FROM clientes c INNER JOIN asignaciones a ON c.legajo = a.legajo WHERE a.usuario_id = ?");
-                $deuda->execute([$uid]);
-                $deuda = $deuda->fetch()['total'] ?? 0;
-
-                $promesas = $pdo->prepare(
-                    "SELECT COUNT(DISTINCT g.legajo) as total 
-                     FROM gestiones_historial g
-                     INNER JOIN asignaciones a ON g.legajo = a.legajo
-                     INNER JOIN (
-                         SELECT legajo, MAX(fecha_gestion) as ultima 
-                         FROM gestiones_historial GROUP BY legajo
-                     ) ult ON g.legajo = ult.legajo AND g.fecha_gestion = ult.ultima
-                     WHERE g.estado = 'promesa' AND a.usuario_id = ?"
-                );
-                $promesas->execute([$uid]);
-                $promesas = $promesas->fetch()['total'] ?? 0;
-
-                $mora_stats = $pdo->prepare("SELECT COUNT(*) as total FROM clientes c INNER JOIN asignaciones a ON c.legajo = a.legajo WHERE c.dias_atraso > 0 AND a.usuario_id = ?");
-                $mora_stats->execute([$uid]);
-                $mora_stats = $mora_stats->fetch()['total'] ?? 0;
-            }
-            echo json_encode(['deuda' => $deuda, 'promesas' => $promesas, 'mora' => $mora_stats]);
-        } catch (Exception $e) {
-            echo json_encode(['deuda' => 0, 'promesas' => 0, 'mora' => 0]);
-        }
-        exit;
-    }
-
-    // --------------------------------------------------------
-    // ACCIÓN: BUSCAR Y LISTAR CLIENTES
-    // --------------------------------------------------------
-    $q          = $_GET['q']           ?? '';
-    $f_estado   = trim($_GET['estado']       ?? '');
-    $f_operador = (int)($_GET['operador_id'] ?? 0);
-
-    // Subquery que trae la ÚLTIMA gestión de cada legajo
-    $subquery_ultima = "
-        SELECT g.*
-        FROM gestiones_historial g
-        INNER JOIN (
-            SELECT legajo, MAX(fecha_gestion) AS ultima
-            FROM gestiones_historial
-            GROUP BY legajo
-        ) ult ON g.legajo = ult.legajo AND g.fecha_gestion = ult.ultima
-    ";
-
-    // Núcleo SELECT — estado, fecha_promesa y monto_promesa vienen del historial
-    $select_core = "SELECT c.*, 
-        u.nombre AS operador_asignado,
-        u.id     AS operador_id,
-        IFNULL(gest.estado, 'sin_gestion')           AS estado,
-        IFNULL(gest.fecha_promesa, NULL)              AS fecha_promesa,
-        IFNULL(gest.monto_promesa, 0)                 AS monto_promesa,
-        CASE 
-            WHEN c.dias_atraso > 90                  THEN 'rojo'
-            WHEN gest.estado = 'promesa'             THEN 'amarillo'
-            WHEN gest.estado = 'llamar'              THEN 'verde'
-            ELSE 'verde'
-        END AS semaforo";
-
-    // Filtros dinámicos
-    $where_extra = '';
-    $params = ['q' => "%$q%"];
+    // ── CONSTRUIR WHERE DINÁMICO (Se usa para stats y lista) ──
+    $where = " WHERE (c.razon_social LIKE :q OR c.nro_documento LIKE :q OR c.legajo LIKE :q OR c.sucursal LIKE :q)";
+    $params = [':q' => "%$q%"];
 
     if (!empty($f_estado)) {
-        if ($f_estado === 'sin_gestion') {
-            // Pendiente = clientes SIN ninguna gestión registrada
-            $where_extra .= " AND gest.estado IS NULL";
-        } else {
-            $where_extra .= " AND gest.estado = :estado";
-            $params[':estado'] = $f_estado;
-        }
-    }
-    if ($f_operador > 0) {
-        $where_extra .= " AND a.usuario_id = :f_op";
-        $params[':f_op'] = $f_operador;
+        if ($f_estado === 'sin_gestion') $where .= " AND gest.estado IS NULL";
+        else { $where .= " AND gest.estado = :f_estado"; $params[':f_estado'] = $f_estado; }
     }
 
-    if ($is_admin) {
-        $sql = "$select_core
+    if ($can_see_all) {
+        if ($f_operador > 0) { $where .= " AND a.usuario_id = :f_op"; $params[':f_op'] = $f_operador; } 
+        elseif ($f_operador === -1) { $where .= " AND a.usuario_id IS NULL"; }
+    } else {
+        $where .= " AND a.usuario_id = :uid";
+        $params[':uid'] = $uid;
+    }
+
+    // ── ESTADÍSTICAS (Totales Fijos + Filtros Dinámicos) ──
+    if ($action === 'stats') {
+        
+        // 1. Totales Fijos (Sin importar los filtros)
+        $sql_global = "SELECT SUM(total_vencido) as deuda_total, COUNT(id) as total_clientes FROM clientes";
+        $res_global = $pdo->query($sql_global)->fetch();
+
+        // 2. Totales Dinámicos (Respetando el WHERE de la búsqueda)
+        $sql_filtered = "SELECT 
+            SUM(CASE WHEN gest.estado = 'promesa' THEN 1 ELSE 0 END) as promesas,
+            COUNT(c.id) as clientes_filtrados
+            FROM clientes c
+            LEFT JOIN asignaciones a ON c.legajo = a.legajo
+            LEFT JOIN ($subquery_ultima) gest ON c.legajo = gest.legajo
+            $where";
+
+        $stmt = $pdo->prepare($sql_filtered);
+        $stmt->execute($params);
+        $res = $stmt->fetch();
+
+        // Si es operador ocultamos la deuda total y el total de clientes
+        echo json_encode([
+            'deuda_total' => ($rol === 'operador') ? 0 : ($res_global['deuda_total'] ?: 0),
+            'total_clientes' => ($rol === 'operador') ? 0 : ($res_global['total_clientes'] ?: 0),
+            'promesas' => $res['promesas'] ?: 0, 
+            'clientes_filtrados' => $res['clientes_filtrados'] ?: 0
+        ]);
+        exit;
+    }
+
+    // ── LISTADO PRINCIPAL ──
+    $select_core = "SELECT c.*, 
+                    u.nombre as operador_asignado,
+                    u.id as operador_id,
+                    IFNULL(gest.estado, 'sin_gestion') as estado_actual,
+                    gest.fecha_promesa,
+                    gest.monto_promesa,
+                    CASE 
+                        WHEN gest.estado = 'promesa' AND gest.fecha_promesa < CURDATE() THEN 'rojo'
+                        WHEN gest.estado = 'promesa' THEN 'amarillo'
+                        WHEN gest.estado IS NULL OR gest.estado = 'sin_gestion' THEN 'blanco'
+                        ELSE 'verde'
+                    END as semaforo";
+
+    $sql = "$select_core
             FROM clientes c
             LEFT JOIN asignaciones a   ON c.legajo = a.legajo
             LEFT JOIN usuarios u       ON a.usuario_id = u.id
             LEFT JOIN ($subquery_ultima) gest ON c.legajo = gest.legajo
-            WHERE (c.razon_social LIKE :q OR c.nro_documento LIKE :q OR c.legajo LIKE :q OR c.sucursal LIKE :q)
-            $where_extra
+            $where
             ORDER BY c.razon_social ASC LIMIT 200";
-    } else {
-        $params[':uid'] = $uid;
-        $sql = "$select_core
-            FROM clientes c
-            INNER JOIN asignaciones a  ON c.legajo = a.legajo
-            INNER JOIN usuarios u      ON a.usuario_id = u.id
-            LEFT JOIN ($subquery_ultima) gest ON c.legajo = gest.legajo
-            WHERE a.usuario_id = :uid
-            AND (c.razon_social LIKE :q OR c.nro_documento LIKE :q OR c.legajo LIKE :q OR c.sucursal LIKE :q)
-            $where_extra
-            ORDER BY c.razon_social ASC LIMIT 200";
-    }
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
-    $resultados = $stmt->fetchAll();
-    echo json_encode($resultados, JSON_INVALID_UTF8_SUBSTITUTE);
+    echo json_encode($stmt->fetchAll());
 
-} catch (PDOException $e) {
-    echo json_encode([['id' => 0, 'legajo' => 'ERR', 'razon_social' => 'Error SQL: ' . $e->getMessage()]]);
+} catch (Exception $e) {
+    echo json_encode(['error' => $e->getMessage()]);
 }
 ?>

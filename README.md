@@ -46,15 +46,17 @@ Datos fijos del cliente importados desde el sistema de origen.
 | legajo | VARCHAR(50) | **Clave de negocio principal** |
 | razon_social | VARCHAR(150) | Nombre del cliente |
 | nro_documento | VARCHAR(20) | DNI o CUIT |
-| domicilio | VARCHAR(200) | Dirección + localidad |
+| email | VARCHAR(100) | Email del cliente (campo disponible, no usado en UI actual) |
+| domicilio | VARCHAR(200) | Dirección + localidad (se concatenan al importar CSV) |
 | telefonos | VARCHAR(255) | Teléfonos separados por guión |
-| dias_atraso | INT | Días de mora |
-| mora | DECIMAL(15,2) | Importe de mora |
+| dias_atraso | INT | Días de mora (default 0) |
+| mora | DECIMAL(15,2) | Importe de mora (default 0.00) |
 | total_vencido | DECIMAL(15,2) | Capital vencido |
 | vencimiento | DATE | Fecha de vencimiento |
 | ultimo_pago | DATE | Fecha del último pago registrado |
-| c_cuotas | INT | Cantidad de cuotas pendientes |
+| c_cuotas | INT | Cantidad de cuotas pendientes (default 0) |
 | sucursal | VARCHAR(100) | Sucursal de origen |
+| created_at | TIMESTAMP | Fecha de inserción del registro |
 
 > ⚠️ Las columnas `estado`, `fecha_promesa` y `monto_promesa` **no existen** en esta tabla.
 > Esos datos se leen siempre desde la última gestión en `gestiones_historial`.
@@ -67,13 +69,16 @@ Registro cronológico de todas las gestiones. Es la **única fuente de verdad** 
 | Campo | Tipo | Descripción |
 |-------|------|-------------|
 | id | INT AUTO_INCREMENT | PK |
-| legajo | VARCHAR(50) | Vínculo con el cliente |
+| cliente_id | INT | Referencia al `id` de clientes (legacy, no usar para lógica) |
+| legajo | VARCHAR(50) | **Vínculo principal con el cliente** |
 | usuario_id | INT | Operador que realizó la gestión |
-| estado | ENUM | Estado de la gestión |
+| estado | ENUM | Estado de la gestión (default: `promesa`) |
 | fecha_promesa | DATE | Fecha acordada de pago |
 | monto_promesa | DECIMAL(10,2) | Monto acordado |
 | observaciones | TEXT | Detalle de la llamada |
 | fecha_gestion | TIMESTAMP | Fecha y hora automática |
+
+> ⚠️ El campo `cliente_id` existe en la BD pero **no se usa** en la lógica actual. Toda búsqueda y JOIN se hace por `legajo`.
 
 **Estados válidos:**
 | Valor | Color en UI |
@@ -84,6 +89,7 @@ Registro cronológico de todas las gestiones. Es la **única fuente de verdad** 
 | `llamar` | 🟢 Verde |
 | `numero_baja` | ⚫ Gris |
 | `otro` | 🟣 Violeta |
+| `al_dia` | 🟩 Verde agua |
 
 ---
 
@@ -106,7 +112,9 @@ Cuentas de acceso al sistema.
 | nombre | VARCHAR(100) | Nombre completo |
 | email | VARCHAR(100) UNIQUE | Usuario de login |
 | password | VARCHAR(255) | Hash bcrypt |
-| rol | ENUM('admin','operador') | Nivel de acceso |
+| rol | ENUM('admin','operador','colaborador') | Nivel de acceso |
+| activo | TINYINT(1) | 1 = habilitado, 0 = deshabilitado (default 1) |
+| created_at | TIMESTAMP | Fecha de creación del usuario |
 
 ---
 
@@ -145,6 +153,12 @@ LIMIT 1;
 - Puede filtrar por operador
 - Puede importar CSV de clientes y asignaciones
 - Puede crear, editar y eliminar operadores
+
+### Colaborador (`colaborador`)
+- Ve todos los clientes de la cartera (igual que admin)
+- Puede asignar/reasignar legajos a operadores
+- Puede filtrar por operador
+- **No puede** importar CSV, crear/editar/eliminar usuarios ni eliminar clientes
 
 ### Operador (`operador`)
 - Ve solo los clientes asignados a su usuario
@@ -232,6 +246,22 @@ LEFT JOIN (
 ) ult ON g.legajo = ult.legajo AND g.fecha_gestion = ult.ultima
 ORDER BY c.razon_social;
 ```
+
+---
+
+## Historial de cambios
+
+### v1.1 — 2026-03-21
+
+#### 🐛 Fix: Login no procesaba el formulario correctamente
+**Problema:** Al hacer clic en "Entrar", el formulario se enviaba como `GET` en lugar de `POST`, lo que causaba que `login.php` nunca procesara las credenciales (requiere `REQUEST_METHOD === 'POST'`). El handler de JavaScript que interceptaba el submit estaba dentro del bloque PHP `<?php else: ?>` (es decir, solo se cargaba cuando el usuario ya estaba autenticado), por lo que nunca estaba disponible en la pantalla de login.
+
+**Solución aplicada en `index.php`:**
+- Se agregó `onsubmit="handleLogin(event)"` directamente en el `<form>` del login.
+- Se creó la función `handleLogin()` en un `<script>` separado al final del `</body>`, garantizando que esté disponible siempre, independientemente del estado de sesión.
+- Se eliminó el handler anterior que era inalcanzable.
+
+**Nota:** La tabla `usuarios` tiene columnas `activo` y `created_at` que ya están documentadas en la sección de BD. El campo `activo` actualmente no se valida en `login.php` — un usuario con `activo = 0` puede seguir ingresando. Considerar agregar `AND activo = 1` al query de login si se necesita deshabilitar cuentas.
 
 ---
 
