@@ -1,29 +1,6 @@
 <?php
 /**
  * ARCHIVO: api_importar_csv.php
- *
- * LÓGICA:
- *  1. Lee el CSV y obtiene todos los legajos
- *  2. Para cada fila del CSV:
- *     - Si el legajo YA existe en la BD → actualiza todos los campos MENOS el legajo
- *     - Si el legajo NO existe → lo inserta como cliente nuevo
- *  3. Los legajos que están en la BD pero NO en el CSV →
- *     se les agrega una gestión "al_dia" en el historial (solo si su último estado no era ya "al_dia")
- *
- * COLUMNAS DEL CSV (índice base 0):
- *  0  l_entidad_id
- *  1  legajo          ← CLAVE PRINCIPAL
- *  2  razon_social
- *  3  nro_documento
- *  4  ultimo_pago
- *  5  c_cuotas
- *  6  localidad
- *  7  domicilio
- *  8  dias_atraso
- *  9  total_vencido
- *  10 vencimiento
- *  11 sucursal
- *  12 telefonos
  */
 require_once 'db.php';
 ini_set('auto_detect_line_endings', TRUE);
@@ -32,147 +9,140 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_rol'] !== 'admin') {
     echo json_encode(['success' => false, 'message' => 'No autorizado']);
     exit;
 }
+
 header('Content-Type: application/json');
 
 // ── Helpers ───────────────────────────────────────────────────────────────
-function crm_fecha($raw) {
+function fmt_fecha($raw) {
     $raw = trim($raw);
     if (empty($raw) || strtolower($raw) === 'null') return null;
-    $solo = explode(' ', $raw)[0];
-    if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $solo)) return $solo;
-    if (preg_match('/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/', $solo, $m))
-        return $m[3].'-'.sprintf('%02d',$m[2]).'-'.sprintf('%02d',$m[1]);
+    $d = DateTime::createFromFormat('d/m/Y', $raw);
+    if ($d !== false) return $d->format('Y-m-d');
+    $d2 = DateTime::createFromFormat('Y-m-d', $raw);
+    if ($d2 !== false) return $d2->format('Y-m-d');
     return null;
 }
-function crm_monto($raw) {
-    $v = trim(str_replace(['$',' '], '', $raw));
-    if (strpos($v,'.') !== false && strpos($v,',') !== false) {
-        $v = str_replace('.', '', $v);
-        $v = str_replace(',', '.', $v);
-    } elseif (strpos($v,',') !== false) {
-        $v = str_replace(',', '.', $v);
-    }
-    return (float)$v;
-}
-function crm_str($t) {
-    $t = trim($t);
-    return $t === '' ? '' : mb_convert_encoding($t, 'UTF-8', 'UTF-8, ISO-8859-1, Windows-1252');
-}
-// ─────────────────────────────────────────────────────────────────────────
 
-if (!isset($_FILES['file'])) {
-    echo json_encode(['success' => false, 'message' => 'No se recibió el archivo.']);
+function fmt_monto($raw) {
+    $raw = preg_replace('/[^0-9.,\-]/', '', $raw);
+    $raw = str_replace(',', '.', $raw);
+    return (float)$raw;
+}
+
+function limpiar($str) {
+    return trim(preg_replace('/\s+/', ' ', $str ?? ''));
+}
+
+function crm_str($str) {
+    return mb_strtoupper(limpiar($str), 'UTF-8');
+}
+
+// ── Recepción del Archivo ─────────────────────────────────────────────────
+if (!isset($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
+    echo json_encode(['success' => false, 'message' => 'No se recibió ningún archivo o hubo un error de subida.']);
     exit;
 }
 
-// Abrir y detectar delimitador
-$handle  = fopen($_FILES['file']['tmp_name'], 'r');
-$primera = fgets($handle);
-$delim   = (strpos($primera, ';') !== false) ? ';' : ',';
-rewind($handle);
-fgetcsv($handle, 0, $delim); // saltar encabezado
+$tmp_name = $_FILES['file']['tmp_name'];
 
-// ── Paso 1: leer todo el CSV ──────────────────────────────────────────────
-$filas_csv      = [];  // legajo => array de datos
-while (($d = fgetcsv($handle, 0, $delim)) !== FALSE) {
-    if (count(array_filter($d)) === 0) continue;
-    $d      = array_pad($d, 13, '');
-    $legajo = crm_str($d[1]);
-    if ($legajo === '') continue;
-    $filas_csv[$legajo] = $d;
-}
-fclose($handle);
-
-if (empty($filas_csv)) {
-    echo json_encode(['success' => false, 'message' => 'El archivo no tiene filas válidas.']);
-    exit;
-}
-
-// ── Paso 2: legajos que ya están en la BD ────────────────────────────────
-$stmt_leg = $pdo->query("SELECT legajo FROM clientes WHERE legajo IS NOT NULL AND legajo != ''");
-$legajos_bd = $stmt_leg->fetchAll(PDO::FETCH_COLUMN);   // array plano de strings
-
-// ── Paso 3: preparar queries ─────────────────────────────────────────────
-
-// INSERT para clientes NUEVOS (legajo no existe en BD)
-$sql_insert = "INSERT INTO clientes
-    (l_entidad_id, legajo, razon_social, nro_documento,
-     ultimo_pago, c_cuotas, domicilio,
-     dias_atraso, total_vencido, vencimiento, sucursal, telefonos)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?)";
-
-// UPDATE para clientes EXISTENTES (busca por legajo, actualiza todo menos legajo)
-$sql_update = "UPDATE clientes SET
-    l_entidad_id  = ?,
-    razon_social  = ?,
-    nro_documento = ?,
-    ultimo_pago   = ?,
-    c_cuotas      = ?,
-    domicilio     = ?,
-    dias_atraso   = ?,
-    total_vencido = ?,
-    vencimiento   = ?,
-    sucursal      = ?,
-    telefonos     = ?
-    WHERE legajo  = ?";
-
-// Gestión "al_dia" para los ausentes del CSV
-$sql_al_dia = "INSERT INTO gestiones_historial
-    (legajo, usuario_id, estado, observaciones, fecha_gestion)
-    VALUES (?, ?, 'al_dia', 'Marcado automáticamente como al día (no aparece en el CSV)', NOW())";
-
-$stmt_ins    = $pdo->prepare($sql_insert);
-$stmt_upd    = $pdo->prepare($sql_update);
-$stmt_al_dia = $pdo->prepare($sql_al_dia);
-
-// Convertir a set para búsqueda O(1)
-$legajos_bd_set  = array_flip($legajos_bd);
-$legajos_csv_set = array_flip(array_keys($filas_csv));
-
-$cnt_insert  = 0;
-$cnt_update  = 0;
-$cnt_al_dia  = 0;
-$errores     = [];
-
-$pdo->beginTransaction();
 try {
+    $pdo->beginTransaction();
 
-    // ── Procesar cada fila del CSV ────────────────────────────────────────
-    foreach ($filas_csv as $legajo => $d) {
+    // 1. Fotografía de la base: Obtenemos todos los legajos y su estado actual (la última gestión)
+    $stmt_legajos = $pdo->query(
+        "SELECT c.legajo, (SELECT estado FROM gestiones_historial g WHERE g.legajo = c.legajo ORDER BY id DESC LIMIT 1) as estado_actual 
+         FROM clientes c"
+    );
+    $datos_bd = $stmt_legajos->fetchAll(PDO::FETCH_KEY_PAIR); // Formato: [legajo => estado_actual]
+    $legajos_bd = array_keys($datos_bd);
 
-        $entidad_id = (int)preg_replace('/[^0-9]/', '', $d[0]);
-        $domicilio  = crm_str($d[7]);
-        $localidad  = crm_str($d[6]);
-        $domicilio_completo = $domicilio !== '' && $localidad !== ''
-            ? "$domicilio - $localidad"
-            : ($localidad !== '' ? $localidad : $domicilio);
+    $stmt_insert = $pdo->prepare(
+        "INSERT INTO clientes (
+            l_entidad_id, legajo, razon_social, nro_documento,
+            ultimo_pago, c_cuotas, localidad, domicilio,
+            dias_atraso, total_vencido, vencimiento, sucursal, telefonos
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+    );
 
-        $params_comunes = [
-            crm_fecha($d[4]),                                     // ultimo_pago
-            (int)preg_replace('/[^0-9\-]/', '', $d[5] ?? '0'),   // c_cuotas
-            $domicilio_completo,                                   // domicilio
-            (int)preg_replace('/[^0-9\-]/', '', $d[8] ?? '0'),   // dias_atraso
-            crm_monto($d[9]),                                     // total_vencido
-            crm_fecha($d[10]),                                    // vencimiento
-            crm_str($d[11]),                                      // sucursal
-            crm_str($d[12]),                                      // telefonos
-        ];
+    $stmt_update = $pdo->prepare(
+        "UPDATE clientes SET 
+            l_entidad_id = ?, razon_social = ?, nro_documento = ?,
+            ultimo_pago = ?, c_cuotas = ?, localidad = ?, domicilio = ?,
+            dias_atraso = ?, total_vencido = ?, vencimiento = ?, 
+            sucursal = ?, telefonos = ?
+         WHERE legajo = ?"
+    );
+
+    // Gestión para los que desaparecen del CSV (Pasan a Al Día)
+    $stmt_al_dia = $pdo->prepare(
+        "INSERT INTO gestiones_historial (legajo, usuario_id, estado, observaciones, fecha_gestion)
+         VALUES (?, ?, 'al_dia', 'Gestión automática: No figura en importación', NOW())"
+    );
+
+    // Gestión para los que REINGRESAN (Pierden el "Al Día" y vuelven a pendiente/NULL)
+    $stmt_reingreso = $pdo->prepare(
+        "INSERT INTO gestiones_historial (legajo, usuario_id, estado, observaciones, fecha_gestion)
+         VALUES (?, ?, NULL, 'Gestión automática: Reingreso en importación CSV (Pendiente)', NOW())"
+    );
+
+    $handle = fopen($tmp_name, 'r');
+    if ($handle === false) throw new Exception("No se pudo leer el archivo CSV.");
+
+    $primera_linea = fgets($handle);
+    $delimitador = (strpos($primera_linea, ';') !== false) ? ';' : ',';
+    rewind($handle);
+
+    $header = fgetcsv($handle, 0, $delimitador);
+    if (!$header || count($header) < 13) throw new Exception("El CSV no tiene las 13 columnas requeridas.");
+
+    $cnt_insert = 0;
+    $cnt_update = 0;
+    $cnt_al_dia = 0;
+    $filas_csv = [];
+    $errores = [];
+
+    // ── Procesar filas del CSV ───────────────────────────────────────────────
+    while (($d = fgetcsv($handle, 0, $delimitador)) !== false) {
+        if (count($d) < 13) continue;
+
+        $l_ent_id = (int)preg_replace('/[^0-9]/', '', $d[0]);
+        $legajo   = trim($d[1]);
+        if (empty($legajo)) continue;
+
+        $filas_csv[$legajo] = true;
+
+        $p_razon = crm_str($d[2]);
+        $p_doc   = crm_str($d[3]);
+        $p_ult   = fmt_fecha($d[4]);
+        $p_cta   = (int)preg_replace('/[^0-9\-]/', '', $d[5] ?? '0');
+        $p_loc   = limpiar($d[6]);
+        $p_dom   = limpiar($d[7]);
+        $p_mora  = (int)preg_replace('/[^0-9\-]/', '', $d[8] ?? '0');
+        $p_tot   = fmt_monto($d[9]);
+        $p_ven   = fmt_fecha($d[10]);
+        $p_suc   = limpiar($d[11]);
+        $p_tel   = limpiar($d[12]);
 
         try {
-            if (isset($legajos_bd_set[$legajo])) {
-                // ── ACTUALIZAR cliente existente ──────────────────────────
-                $stmt_upd->execute(array_merge(
-                    [$entidad_id, crm_str($d[2]), crm_str($d[3])],
-                    $params_comunes,
-                    [$legajo]
-                ));
+            if (in_array($legajo, $legajos_bd)) {
+                // Existe -> Actualizar
+                $stmt_update->execute([
+                    $l_ent_id, $p_razon, $p_doc, $p_ult, $p_cta, $p_loc, $p_dom,
+                    $p_mora, $p_tot, $p_ven, $p_suc, $p_tel, $legajo
+                ]);
                 $cnt_update++;
+
+                // -- REGLA: Si estaba al día, resetearlo a pendiente (NULL) --
+                if (array_key_exists($legajo, $datos_bd) && $datos_bd[$legajo] === 'al_dia') {
+                    $stmt_reingreso->execute([$legajo, $_SESSION['user_id']]);
+                }
+
             } else {
-                // ── INSERTAR cliente nuevo ────────────────────────────────
-                $stmt_ins->execute(array_merge(
-                    [$entidad_id, $legajo, crm_str($d[2]), crm_str($d[3])],
-                    $params_comunes
-                ));
+                // No existe -> Insertar
+                $stmt_insert->execute([
+                    $l_ent_id, $legajo, $p_razon, $p_doc, $p_ult, $p_cta, $p_loc, $p_dom,
+                    $p_mora, $p_tot, $p_ven, $p_suc, $p_tel
+                ]);
                 $cnt_insert++;
             }
         } catch (Exception $ex) {
@@ -180,19 +150,15 @@ try {
         }
     }
 
-    // ── Marcar como "al_dia" los que no están en el CSV ──────────────────
+    // ── Marcar como "al_dia" los que YA NO están en el CSV ──────────────────
     $legajos_ausentes = array_diff($legajos_bd, array_keys($filas_csv));
 
     foreach ($legajos_ausentes as $leg_ausente) {
-        // Verificar si su último estado ya es "al_dia" para no duplicar
-        $s = $pdo->prepare(
-            "SELECT estado FROM gestiones_historial
-             WHERE legajo = ? ORDER BY fecha_gestion DESC LIMIT 1"
-        );
-        $s->execute([$leg_ausente]);
-        $ultimo = $s->fetchColumn();
-
-        if ($ultimo !== 'al_dia') {
+        // Solo insertamos si su estado anterior NO era ya 'al_dia'
+        if (array_key_exists($leg_ausente, $datos_bd) && $datos_bd[$leg_ausente] !== 'al_dia') {
+            $stmt_al_dia->execute([$leg_ausente, $_SESSION['user_id']]);
+            $cnt_al_dia++;
+        } elseif (!array_key_exists($leg_ausente, $datos_bd)) {
             $stmt_al_dia->execute([$leg_ausente, $_SESSION['user_id']]);
             $cnt_al_dia++;
         }
@@ -200,16 +166,15 @@ try {
 
     $pdo->commit();
 
+    $msg = "Nuevos: $cnt_insert | Actualizados: $cnt_update | Pasados a Al Día: $cnt_al_dia";
+    if (count($errores) > 0) {
+        $msg .= "\nErrores: " . count($errores) . " (revisar log)";
+    }
+
+    echo json_encode(['success' => true, 'count' => $msg, 'errores' => array_slice($errores, 0, 10)]);
+
 } catch (Exception $e) {
-    $pdo->rollBack();
-    echo json_encode(['success' => false, 'count' => 'Error crítico: ' . $e->getMessage()]);
-    exit;
+    if ($pdo->inTransaction()) $pdo->rollBack();
+    echo json_encode(['success' => false, 'message' => 'Error crítico: ' . $e->getMessage()]);
 }
-
-// ── Respuesta ─────────────────────────────────────────────────────────────
-$msg = "{$cnt_update} actualizados, {$cnt_insert} nuevos.";
-if ($cnt_al_dia > 0)   $msg .= " {$cnt_al_dia} marcados como al día.";
-if (!empty($errores))  $msg .= "\n\nAdvertencias:\n" . implode("\n", array_slice($errores, 0, 5));
-
-echo json_encode(['success' => true, 'count' => $msg]);
 ?>

@@ -29,6 +29,7 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
         .badge-no_corresponde { background: #fee2e2; color: #991b1b; }
         .badge-llamar { background: #dcfce7; color: #166534; }
         .badge-numero_baja { background: #f1f5f9; color: #475569; }
+        .badge-carta { background: #fce7f3; color: #be185d; }
         .badge-otro { background: #f3e8ff; color: #6b21a8; }
         .badge-sin_gestion { background: #f8fafc; color: #94a3b8; border: 1px solid #e2e8f0; }
         .badge-al_dia { background: #ccfbf1; color: #0f766e; }
@@ -41,6 +42,7 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
         <div class="bg-white p-12 rounded-[3.5rem] shadow-2xl w-full max-w-sm border border-slate-200 text-center">
             <div class="bg-blue-600 w-20 h-20 rounded-[1.8rem] mx-auto mb-4 flex items-center justify-center text-white text-4xl font-extrabold italic shadow-2xl shadow-blue-200">R</div>
             <h1 class="text-2xl font-black text-slate-800 tracking-tighter uppercase mb-10">CRM Roque</h1>
+            
             <form id="loginForm" class="space-y-4" onsubmit="handleLogin(event)">
                 <input type="text" name="usuario" placeholder="Email" required class="w-full px-6 py-4 bg-slate-50 border rounded-2xl outline-none font-semibold">
                 <input type="password" name="clave" placeholder="Contraseña" required class="w-full px-6 py-4 bg-slate-50 border rounded-2xl outline-none font-semibold">
@@ -49,6 +51,34 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
             <div id="lError" class="mt-6 text-red-600 text-xs font-bold hidden bg-red-50 py-3 rounded-xl"></div>
         </div>
     </div>
+
+    <script>
+        async function handleLogin(e) {
+            e.preventDefault();
+            const btn = e.target.querySelector('button[type="submit"]');
+            const ogText = btn.innerText;
+            btn.disabled = true;
+            btn.innerText = 'Ingresando...';
+            try {
+                const res = await fetch('login.php', { method: 'POST', body: new FormData(e.target) });
+                const d = await res.json();
+                if (d.success) {
+                    location.reload();
+                } else {
+                    const err = document.getElementById('lError');
+                    err.innerText = d.message || 'Credenciales incorrectas.';
+                    err.classList.remove('hidden');
+                    btn.disabled = false;
+                    btn.innerText = ogText;
+                }
+            } catch(ex) {
+                alert('Error de conexión. Verificá que el servidor esté activo.');
+                btn.disabled = false;
+                btn.innerText = ogText;
+            }
+        }
+    </script>
+
     <?php else: ?>
     <header class="bg-white/80 backdrop-blur-md border-b sticky top-0 z-40 shadow-sm">
         <div class="max-w-7xl mx-auto px-8 py-5 flex justify-between items-center">
@@ -58,14 +88,17 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
                     <h2 class="text-xl font-extrabold text-slate-800 italic tracking-tighter uppercase">CRM.ROQUE</h2>
                 </div>
                 <nav class="flex gap-8 border-b-0">
-                    <button onclick="switchTab('clientes')" id="btn-clientes" class="text-[11px] font-black uppercase tracking-widest transition tab-active pb-1">Cartera Activa</button>
+                    <?php if($can_assign): ?>
+                    <button onclick="switchTab('dashboard')" id="btn-dashboard" class="text-[11px] font-black uppercase tracking-widest text-slate-400 transition pb-1">Tablero</button>
+                    <?php endif; ?>
+                    <button onclick="switchTab('clientes')" id="btn-clientes" class="text-[11px] font-black uppercase tracking-widest text-slate-400 transition pb-1">Cartera Activa</button>
                     <?php if($can_assign): ?>
                     <button onclick="switchTab('usuarios')" id="btn-usuarios" class="text-[11px] font-black uppercase tracking-widest text-slate-400 transition pb-1">Equipo</button>
                     <?php endif; ?>
                 </nav>
             </div>
             <div class="flex items-center gap-4">
-                <span class="text-[11px] font-black text-slate-500 uppercase tracking-widest">👤 <?= $nombre_usuario ?></span>
+                <span class="text-[11px] font-black text-slate-500 uppercase tracking-widest">👤 <?= htmlspecialchars($nombre_usuario) ?></span>
                 <a href="?logout=1" class="bg-rose-50 text-rose-600 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase hover:bg-rose-100 transition">Salir</a>
             </div>
         </div>
@@ -76,14 +109,74 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
             <?php if($rol_usuario !== 'operador'): ?>
             <div class="bg-white p-8 rounded-[2.5rem] border shadow-sm"><p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Total en Calle</p><h4 id="stat-deuda" class="text-3xl font-black text-slate-800">$0</h4></div>
             <?php endif; ?>
-            <div class="bg-white p-8 rounded-[2.5rem] border shadow-sm"><p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Promesas (Filtradas)</p><h4 id="stat-promesas" class="text-3xl font-black text-blue-600">0</h4></div>
-            <div class="bg-white p-8 rounded-[2.5rem] border-l-[10px] border-l-rose-500 shadow-sm"><p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 text-rose-500">Clientes (Filtrado)</p><h4 id="stat-filtrados" class="text-3xl font-black text-rose-600">0</h4></div>
+            
+            <div class="bg-white p-8 rounded-[2.5rem] border shadow-sm"><p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Promesas (Activas)</p><h4 id="stat-promesas" class="text-3xl font-black text-blue-600">0</h4></div>
+            
+            <div class="bg-white p-8 rounded-[2.5rem] border-l-[10px] border-l-rose-500 shadow-sm"><p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 text-rose-500">Clientes (Lista Actual)</p><h4 id="stat-filtrados" class="text-3xl font-black text-rose-600">0</h4></div>
+            
             <?php if($rol_usuario !== 'operador'): ?>
-            <div class="bg-white p-8 rounded-[2.5rem] border-l-[10px] border-l-blue-500 shadow-sm"><p class="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-2">Total clientes</p><h4 id="stat-total" class="text-3xl font-black text-slate-800">0</h4></div>
+            <div class="bg-white p-8 rounded-[2.5rem] border-l-[10px] border-l-blue-500 shadow-sm"><p class="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-2">Total clientes BD</p><h4 id="stat-total" class="text-3xl font-black text-slate-800">0</h4></div>
             <?php endif; ?>
         </div>
 
-        <section id="sec-clientes" class="space-y-6">
+        <?php if($can_assign): ?>
+        <section id="sec-dashboard" class="hidden space-y-6">
+            
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-2xl font-black text-slate-800 uppercase italic tracking-tighter">Resumen General</h3>
+                <button onclick="loadDashboard()" class="text-[10px] font-black uppercase text-blue-500 hover:text-blue-700 transition bg-blue-50 px-4 py-2 rounded-xl">↻ Actualizar Tablero</button>
+            </div>
+            
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                <div class="bg-slate-900 p-6 rounded-[2rem] shadow-xl relative overflow-hidden">
+                    <div class="absolute -right-4 -bottom-4 opacity-10 text-7xl">👥</div>
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 relative z-10">Total Asignados</p>
+                    <h4 id="dash-asignados" class="text-3xl font-black text-white relative z-10">0</h4>
+                </div>
+                <div class="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Gestionados</p>
+                    <h4 id="dash-gestionados" class="text-3xl font-black text-blue-600">0</h4>
+                </div>
+                <div class="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Promesas Logradas</p>
+                    <h4 id="dash-promesas-totales" class="text-3xl font-black text-emerald-600">0</h4>
+                </div>
+                <div class="bg-gradient-to-br from-indigo-500 to-purple-600 p-6 rounded-[2rem] shadow-lg text-white">
+                    <p class="text-[10px] font-black text-indigo-200 uppercase tracking-widest mb-1">Cobertura</p>
+                    <h4 id="dash-cobertura" class="text-3xl font-black text-white">0%</h4>
+                </div>
+            </div>
+
+            <h3 class="text-xl font-black text-slate-800 uppercase italic tracking-tighter mb-4 mt-8">Estado de la Cartera</h3>
+            <div id="dash-estados" class="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-3 mb-8">
+                <p class="col-span-full text-center text-xs font-bold text-slate-400 py-4 uppercase tracking-widest">Cargando estados...</p>
+            </div>
+
+            <div class="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden p-8 mt-8">
+                <div class="mb-6">
+                    <h3 class="text-xl font-black text-slate-800 uppercase italic tracking-tighter">Rendimiento por Operador</h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="bg-slate-50 border-b text-slate-400 font-black uppercase text-[10px] tracking-widest">
+                            <tr>
+                                <th class="px-6 py-5 text-left">Operador</th>
+                                <th class="px-6 py-5 text-center">Asignados</th>
+                                <th class="px-6 py-5 text-center">Gestionados</th>
+                                <th class="px-6 py-5 text-center">Promesas Logradas</th>
+                                <th class="px-6 py-5 text-center">Efectividad</th>
+                            </tr>
+                        </thead>
+                        <tbody id="listaDashboard" class="divide-y divide-slate-100">
+                            <tr><td colspan="5" class="text-center py-10 text-slate-400 font-bold text-xs uppercase tracking-widest">Cargando métricas...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+        <?php endif; ?>
+
+        <section id="sec-clientes" class="hidden space-y-6">
             <div class="flex flex-col lg:flex-row justify-between items-center gap-4">
                 <div class="flex flex-1 flex-col md:flex-row gap-3 w-full">
                     <input type="text" id="search" placeholder="Buscar por Legajo, Razón o Doc..." class="flex-1 px-6 py-4 bg-white border border-slate-200 rounded-2xl text-sm font-semibold outline-none shadow-sm focus:ring-4 focus:ring-blue-500/10 transition">
@@ -97,6 +190,7 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
                         <option value="no_corresponde">No Corresponde</option>
                         <option value="llamar">Llamar luego</option>
                         <option value="numero_baja">Nro de Baja</option>
+                        <option value="carta">Carta</option>
                         <option value="otro">Otro</option>
                     </select>
 
@@ -174,6 +268,7 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
             <option value="no_corresponde">No Corresponde</option>
             <option value="llamar">Llamar luego</option>
             <option value="numero_baja">Nro de Baja</option>
+            <option value="carta">Carta</option>
             <option value="otro">Otro</option>
         </select>
         <button onclick="ejecutarMasivo('cambiar_estado')" class="bg-blue-600 text-white px-5 py-2.5 rounded-xl text-[10px] font-black uppercase hover:bg-blue-500 transition shrink-0">Aplicar</button>
@@ -220,11 +315,12 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
                     <div class="grid grid-cols-3 gap-4">
                         <select name="estado" id="mEst" class="p-4 bg-slate-50 border rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500">
                             <option value="promesa">Promesa de Pago</option>
-                            <option value="al_dia">Al Día (Sin deuda)</option>
+                            <option value="al_dia" <?= $rol_usuario === 'operador' ? 'disabled class="hidden"' : '' ?>>Al Día (Sin deuda)</option>
                             <option value="no_responde">No Responde</option>
                             <option value="no_corresponde">No Corresponde</option>
                             <option value="llamar">Llamar más tarde</option>
                             <option value="numero_baja">Número dado de baja</option>
+                            <option value="carta">Carta</option>
                             <option value="otro">Otro</option>
                         </select>
                         <input type="number" step="0.01" name="monto_promesa" id="mMon" placeholder="Monto Acuerdo" class="p-4 bg-slate-50 border rounded-2xl text-sm font-bold outline-none">
@@ -261,18 +357,86 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
         </div>
     </div>
     <?php endif; ?>
-    <?php endif; ?>
 
     <script>
-    const currentUserId = <?= $user_id ?>;
+    const currentUserId = <?= (int)$user_id ?>;
     const isAdmin = <?= $rol_usuario === 'admin' ? 'true' : 'false' ?>;
     const isColab = <?= $rol_usuario === 'colaborador' ? 'true' : 'false' ?>;
     const canAssign = isAdmin || isColab;
     const isOperador = <?= $rol_usuario === 'operador' ? 'true' : 'false' ?>;
     
+    // Configuración visual de los Estados para el Dashboard
+    const cfgEstados = [
+        { id: 'sin_gestion', label: 'PENDIENTE', class: 'badge-sin_gestion' },
+        { id: 'promesa', label: 'PROMESA', class: 'badge-promesa' },
+        { id: 'al_dia', label: 'AL DÍA', class: 'badge-al_dia' },
+        { id: 'llamar', label: 'LLAMAR', class: 'badge-llamar' },
+        { id: 'no_responde', label: 'NO RESPONDE', class: 'badge-no_responde' },
+        { id: 'no_corresponde', label: 'NO CORRESPONDE', class: 'badge-no_corresponde' },
+        { id: 'numero_baja', label: 'NRO BAJA', class: 'badge-numero_baja' },
+        { id: 'carta', label: 'CARTA', class: 'badge-carta' },
+        { id: 'otro', label: 'OTRO', class: 'badge-otro' }
+    ];
+
     let operadoresList = [];
     let selectedLegajos = []; 
-    const api_clientes = 'api_clientes.php?action=', api_gestion = 'api_gestion.php', api_historial = 'api_historial.php?legajo=', api_usuarios = 'api_usuarios.php', api_importar = 'api_importar_csv.php';
+    const api_clientes = 'api_clientes.php?action=';
+    const api_gestion = 'api_gestion.php';
+    const api_historial = 'api_historial.php?legajo=';
+    const api_usuarios = 'api_usuarios.php';
+    const api_dashboard = 'api_dashboard.php';
+
+    // ── Carga de Rendimiento de Dashboard ──
+    const loadDashboard = async () => {
+        if (!canAssign) return;
+        try {
+            document.getElementById('listaDashboard').innerHTML = `<tr><td colspan="5" class="text-center py-10 text-slate-400 font-bold text-xs uppercase tracking-widest">Cargando métricas...</td></tr>`;
+            const res = await fetch(api_dashboard);
+            const data = await res.json();
+            
+            if (data.success) {
+                // Actualizar Tarjetas de Resumen General
+                if (document.getElementById('dash-asignados')) {
+                    document.getElementById('dash-asignados').innerText = data.resumen.total_asignados || '0';
+                    document.getElementById('dash-gestionados').innerText = data.resumen.total_gestionados || '0';
+                    document.getElementById('dash-promesas-totales').innerText = data.resumen.total_promesas || '0';
+                    document.getElementById('dash-cobertura').innerText = (data.resumen.cobertura || '0') + '%';
+                }
+
+                // Renderizar Tarjetas de Estados
+                if (document.getElementById('dash-estados') && data.estados) {
+                    document.getElementById('dash-estados').innerHTML = cfgEstados.map(est => {
+                        const count = data.estados[est.id] || 0;
+                        return `<div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col items-center justify-center text-center hover:shadow-md transition">
+                            <h4 class="text-3xl font-black text-slate-800 mb-3">${count}</h4>
+                            <span class="px-3 py-1.5 rounded-full text-[9px] font-black uppercase ${est.class} w-full truncate border border-transparent">${est.label}</span>
+                        </div>`;
+                    }).join('');
+                }
+
+                // Renderizar Tabla de Operadores
+                document.getElementById('listaDashboard').innerHTML = data.data.map(op => {
+                    const asignados = parseInt(op.total_asignados) || 0;
+                    const gestionados = parseInt(op.clientes_gestionados) || 0;
+                    const promesas = parseInt(op.promesas_logradas) || 0;
+                    
+                    const efectividad = gestionados > 0 ? Math.round((promesas / gestionados) * 100) : 0;
+                    const colorEfectividad = efectividad >= 30 ? 'text-emerald-500' : (efectividad >= 15 ? 'text-amber-500' : 'text-rose-500');
+                    
+                    return `<tr class="hover:bg-blue-50/50 transition">
+                        <td class="px-6 py-4 font-black text-slate-800">${op.nombre}</td>
+                        <td class="px-6 py-4 text-center font-bold text-slate-600">${asignados}</td>
+                        <td class="px-6 py-4 text-center font-bold text-blue-600">${gestionados}</td>
+                        <td class="px-6 py-4 text-center font-bold text-emerald-600">${promesas}</td>
+                        <td class="px-6 py-4 text-center font-black ${colorEfectividad}">${efectividad}%</td>
+                    </tr>`;
+                }).join('') || `<tr><td colspan="5" class="text-center py-10 text-slate-400 font-bold text-xs uppercase tracking-widest">No hay datos de rendimiento</td></tr>`;
+            }
+        } catch (e) {
+            console.error(e);
+            document.getElementById('listaDashboard').innerHTML = `<tr><td colspan="5" class="text-center py-10 text-rose-400 font-bold text-xs uppercase tracking-widest">Error al cargar datos</td></tr>`;
+        }
+    };
 
     // ── Carga de clientes ──
     const load = async () => {
@@ -372,6 +536,29 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
         else alert('Error: ' + d.message);
     }
 
+    // ── Navigation Tabs ──
+    function switchTab(tab) { 
+        if(document.getElementById('sec-dashboard')) document.getElementById('sec-dashboard').classList.toggle('hidden', tab !== 'dashboard');
+        document.getElementById('sec-clientes').classList.toggle('hidden', tab !== 'clientes'); 
+        if(document.getElementById('sec-usuarios')) document.getElementById('sec-usuarios').classList.toggle('hidden', tab !== 'usuarios'); 
+        
+        ['clientes', 'usuarios', 'dashboard'].forEach(t => {
+            const btn = document.getElementById('btn-' + t);
+            if (btn) {
+                if (t === tab) {
+                    btn.classList.add('tab-active');
+                    btn.classList.remove('text-slate-400');
+                } else {
+                    btn.classList.remove('tab-active');
+                    btn.classList.add('text-slate-400');
+                }
+            }
+        });
+
+        if (tab === 'usuarios') loadPersonal(); 
+        if (tab === 'dashboard') loadDashboard();
+    }
+
     // ── Initialization ──
     window.onload = async () => { 
         if(canAssign) { 
@@ -384,8 +571,15 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
             document.getElementById('mAsignacion').innerHTML = '<option value="">👤 Sin Asignar</option>' + opsHTML; 
             const bOp = document.getElementById('masivo_operador');
             if(bOp) bOp.innerHTML += opsHTML;
+
+            // Iniciar en dashboard para Admin/Colaborador
+            switchTab('dashboard');
+        } else {
+            // Iniciar en clientes para Operador
+            switchTab('clientes');
         }
-        load(); stats(); 
+        load(); 
+        stats(); 
     };
 
     let searchTimeout;
@@ -403,12 +597,8 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
 
         try {
             const res = await fetch(url), d = await res.json(); 
-            
-            // Ocultos para operadores (fijos globales)
             if(document.getElementById('stat-deuda')) document.getElementById('stat-deuda').innerText = '$' + parseFloat(d.deuda_total).toLocaleString('es-AR');
             if(document.getElementById('stat-total')) document.getElementById('stat-total').innerText = d.total_clientes;
-            
-            // Visibles para todos (dinámicos filtrados)
             if(document.getElementById('stat-promesas')) document.getElementById('stat-promesas').innerText = d.promesas; 
             if(document.getElementById('stat-filtrados')) document.getElementById('stat-filtrados').innerText = d.clientes_filtrados;
         } catch(e) { console.error(e); }
@@ -433,6 +623,25 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
         document.getElementById('mMon').value = c.monto_promesa || ''; 
         document.getElementById('mFec').value = c.fecha_promesa || '';
         
+        // ── BLOQUEO PARA OPERADORES SI ESTÁ AL DÍA ──
+        const formElements = document.querySelectorAll('#gForm input, #gForm select, #gForm textarea');
+        const btnGuardar = document.querySelector('#gForm button[type="submit"]');
+        
+        if (isOperador && c.estado_actual === 'al_dia') {
+            formElements.forEach(el => el.disabled = true);
+            btnGuardar.disabled = true;
+            btnGuardar.innerText = '🔒 Bloqueado (Al Día)';
+            btnGuardar.classList.add('opacity-50', 'cursor-not-allowed');
+            btnGuardar.classList.remove('hover:bg-blue-700');
+        } else {
+            formElements.forEach(el => el.disabled = false);
+            btnGuardar.disabled = false;
+            btnGuardar.innerText = 'Guardar Gestión';
+            btnGuardar.classList.remove('opacity-50', 'cursor-not-allowed');
+            btnGuardar.classList.add('hover:bg-blue-700');
+        }
+        // ──────────────────────────────────────────────
+
         const hRes = await fetch(api_historial + encodeURIComponent(c.legajo)), hData = await hRes.json();
         document.getElementById('mHis').innerHTML = hData.map(h => {
             let fH = h.fecha.split(' ')[0].split('-').reverse().join('/') + ' ' + h.fecha.split(' ')[1].substring(0,5);
@@ -454,63 +663,75 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
             e.preventDefault(); const btn = e.target.querySelector('button'); btn.disabled = true; btn.innerText = 'Guardando...';
             try {
                 const fd = new FormData(e.target), res = await fetch(api_gestion, { method: 'POST', body: fd }), d = await res.json();
-                if (d.success) { e.target.elements['observacion'].value = ''; load(); stats(); document.getElementById('mContent').classList.replace('scale-100', 'scale-95'); setTimeout(() => document.getElementById('modal').classList.replace('flex', 'hidden'), 300); } 
+                if (d.success) { 
+                    e.target.elements['observacion'].value = ''; 
+                    load(); 
+                    stats(); 
+                    if(canAssign) loadDashboard(); // Refrescar métricas si el admin guardó gestión
+                    document.getElementById('mContent').classList.replace('scale-100', 'scale-95'); setTimeout(() => document.getElementById('modal').classList.replace('flex', 'hidden'), 300); 
+                } 
                 else alert("Error: " + d.message);
             } catch(err) { alert("Error."); } finally { btn.disabled = false; btn.innerText = 'Guardar Gestión'; }
         };
     }
 
-    async function cambiarAsignacion(uid) { const legajo = document.getElementById('mLegajoRaw').value; if(!legajo) return; const fd = new FormData(); fd.append('legajo', legajo); fd.append('usuario_id', uid); await fetch(api_clientes+'assign', {method:'POST', body:fd}); load(); stats(); }
-    async function cambiarAsignacionRapida(legajo, uid) { const fd = new FormData(); fd.append('legajo', legajo); fd.append('usuario_id', uid); await fetch(api_clientes+'assign', {method:'POST', body:fd}); stats(); }
+    async function cambiarAsignacion(uid) { const legajo = document.getElementById('mLegajoRaw').value; if(!legajo) return; const fd = new FormData(); fd.append('legajo', legajo); fd.append('usuario_id', uid); await fetch(api_clientes+'assign', {method:'POST', body:fd}); load(); stats(); if(canAssign) loadDashboard(); }
+    async function cambiarAsignacionRapida(legajo, uid) { const fd = new FormData(); fd.append('legajo', legajo); fd.append('usuario_id', uid); await fetch(api_clientes+'assign', {method:'POST', body:fd}); stats(); if(canAssign) loadDashboard(); }
     function closeModal() { document.getElementById('mContent').classList.replace('scale-100', 'scale-95'); setTimeout(() => document.getElementById('modal').classList.replace('flex', 'hidden'), 300); }
     
-    // Función de Pestañas Visuales Reparada
-    function switchTab(tab) { 
-        document.getElementById('sec-clientes').classList.toggle('hidden', tab !== 'clientes'); 
-        document.getElementById('sec-usuarios').classList.toggle('hidden', tab !== 'usuarios'); 
-        
-        const btnC = document.getElementById('btn-clientes');
-        const btnU = document.getElementById('btn-usuarios');
-
-        if (tab === 'clientes') {
-            btnC.classList.add('tab-active');
-            btnC.classList.remove('text-slate-400');
-            if (btnU) {
-                btnU.classList.remove('tab-active');
-                btnU.classList.add('text-slate-400');
-            }
-        } else {
-            if (btnU) {
-                btnU.classList.add('tab-active');
-                btnU.classList.remove('text-slate-400');
-            }
-            btnC.classList.remove('tab-active');
-            btnC.classList.add('text-slate-400');
-            
-            loadPersonal(); 
-        }
-    }
-    
-    // Auth & Modals User (Admin only)
+    // Modal Usuario (Admin)
     function openUserModal() { document.getElementById('uId').value = ''; document.getElementById('userForm').reset(); document.getElementById('modalUser').classList.replace('hidden', 'flex'); }
     function editarUsuario(u) { document.getElementById('uId').value = u.id; document.getElementById('uNom').value = u.nombre; document.getElementById('uMail').value = u.usuario; document.getElementById('uRol').value = u.rol; document.getElementById('modalUser').classList.replace('hidden', 'flex'); }
-    async function eliminarUsuario(id, nom) { if(!confirm(`¿Eliminar al operador ${nom}?`)) return; const fd = new FormData(); fd.append('id', id); await fetch(api_usuarios+'?action=delete', {method:'POST', body:fd}); loadPersonal(); }
-    if(document.getElementById('userForm')){ document.getElementById('userForm').onsubmit = async (e) => { e.preventDefault(); await fetch(api_usuarios+'?action=save', {method:'POST', body:new FormData(e.target)}); document.getElementById('modalUser').classList.replace('flex', 'hidden'); loadPersonal(); }; }
+    async function eliminarUsuario(id, nom) { if(!confirm(`¿Eliminar al operador ${nom}?`)) return; const fd = new FormData(); fd.append('id', id); await fetch(api_usuarios+'?action=delete', {method:'POST', body:fd}); loadPersonal(); if(canAssign) loadDashboard(); }
+    if(document.getElementById('userForm')){ document.getElementById('userForm').onsubmit = async (e) => { e.preventDefault(); await fetch(api_usuarios+'?action=save', {method:'POST', body:new FormData(e.target)}); document.getElementById('modalUser').classList.replace('flex', 'hidden'); loadPersonal(); if(canAssign) loadDashboard(); }; }
 
     function exportarExcel() { /* Tu lógica de exportación */ }
     
-    // Importación CSV visual mejorada (con overlay y alert custom que mostraste en versiones anteriores, o básico si no lo integraste aquí)
+    // ── GESTIÓN DE IMPORTACIÓN DE CSV MEJORADA CON OVERLAY ──
     async function subirCSV(input) { 
         if(!input.files[0]) return; 
-        const fd = new FormData(); fd.append('file', input.files[0]); 
-        const ogBtn = input.previousElementSibling; const ogText = ogBtn.innerText;
-        ogBtn.innerText = 'Sincronizando...'; ogBtn.classList.add('animate-pulse');
-        try { const res = await fetch(api_importar, {method:'POST', body:fd}); const d = await res.json(); alert(d.count); load(); stats(); } 
-        catch(e) { alert("Error al procesar archivo."); } 
-        finally { ogBtn.innerText = ogText; ogBtn.classList.remove('animate-pulse'); input.value = ""; }
+        
+        const overlay = document.createElement('div');
+        overlay.id = 'importOverlay';
+        overlay.innerHTML = `<div style="position:fixed;inset:0;background:rgba(15,23,42,0.8);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:9999;flex-direction:column;color:white;">
+            <div style="width:48px;height:48px;border:4px solid #3b82f6;border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite;margin-bottom:1rem;"></div>
+            <p style="font-weight:900;text-transform:uppercase;letter-spacing:2px;font-size:12px;">Sincronizando Base de Datos...</p>
+        </div><style>@keyframes spin{to{transform:rotate(360deg)}}</style>`;
+        document.body.appendChild(overlay);
+
+        const fd = new FormData(); 
+        fd.append('file', input.files[0]); 
+        
+        try { 
+            const res = await fetch('api_importar_csv.php', {method:'POST', body:fd}); 
+            const d = await res.json(); 
+            
+            if (document.getElementById('importOverlay')) document.body.removeChild(overlay);
+            
+            if(d.success) { 
+                const msg = d.count + (d.errores && d.errores.length ? '\\n\\nErrores:\\n' + d.errores.join('\\n') : '');
+                const resDiv = document.createElement('div');
+                resDiv.innerHTML = `
+                    <div style="position:fixed;inset:0;background:rgba(15,23,42,0.8);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:9999;">
+                        <div style="background:white;padding:2.5rem;border-radius:2rem;text-align:center;max-width:400px;width:90%;">
+                            <div style="background:#dcfce7;color:#166534;width:60px;height:60px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1.5rem;font-size:24px;">✅</div>
+                            <p style="font-weight:900;font-size:14px;color:#1e293b;text-transform:uppercase;letter-spacing:.1em;margin-bottom:1rem;">Importación completada</p>
+                            <p style="font-size:13px;color:#475569;font-weight:600;white-space:pre-line;margin-bottom:1.5rem;">${msg}</p>
+                            <button onclick="this.closest('div').parentElement.parentElement.remove();load();stats();if(canAssign) loadDashboard();" style="background:#2563eb;color:white;border:none;padding:.75rem 2rem;border-radius:1rem;font-weight:900;font-size:11px;text-transform:uppercase;cursor:pointer;letter-spacing:.1em;">Aceptar</button>
+                        </div>
+                    </div>`;
+                document.body.appendChild(resDiv);
+            } else { 
+                alert('Error en la importación: ' + (d.message || 'Error desconocido')); 
+            }
+        } catch(e) { 
+            if (document.getElementById('importOverlay')) document.body.removeChild(overlay);
+            alert("Error crítico al procesar archivo."); 
+        } finally { 
+            input.value = ""; 
+        }
     }
 
-    // Importar Asignaciones
     async function subirCSVAsignaciones(input) { 
         if(!input.files[0]) return; 
         const fd = new FormData(); 
@@ -524,48 +745,11 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
         try { 
             const res = await fetch('api_importar_asignaciones.php', {method:'POST', body:fd}); 
             const d = await res.json(); 
-            
-            if(d.success) {
-                alert(d.count); 
-                load(); 
-                stats(); 
-            } else {
-                alert("Error: " + d.message);
-            }
-        } catch(e) { 
-            alert("Error al procesar el archivo de asignaciones."); 
-        } finally { 
-            ogBtn.innerText = ogText; 
-            ogBtn.classList.remove('animate-pulse'); 
-            input.value = ""; 
-        }
+            if(d.success) { alert(d.count); load(); stats(); if(canAssign) loadDashboard(); } else { alert("Error: " + d.message); }
+        } catch(e) { alert("Error al procesar el archivo de asignaciones."); } 
+        finally { ogBtn.innerText = ogText; ogBtn.classList.remove('animate-pulse'); input.value = ""; }
     }
     </script>
-
-    <script>
-    async function handleLogin(e) {
-        e.preventDefault();
-        const btn = e.target.querySelector('button[type="submit"]');
-        btn.disabled = true;
-        btn.innerText = 'Ingresando...';
-        try {
-            const res = await fetch('login.php', { method: 'POST', body: new FormData(e.target) });
-            const d = await res.json();
-            if (d.success) {
-                location.reload();
-            } else {
-                const err = document.getElementById('lError');
-                err.innerText = d.message || 'Credenciales incorrectas.';
-                err.classList.remove('hidden');
-                btn.disabled = false;
-                btn.innerText = 'Entrar';
-            }
-        } catch(ex) {
-            alert('Error de conexión. Verificá que el servidor esté activo.');
-            btn.disabled = false;
-            btn.innerText = 'Entrar';
-        }
-    }
-    </script>
+    <?php endif; ?>
 </body>
 </html>
