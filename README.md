@@ -1,12 +1,12 @@
 # CRM.ROQUE — Sistema de Gestión de Cobranzas
 
-Sistema web de seguimiento de cartera de clientes con asignación de operadores, historial de gestiones y panel de estadísticas.
+Sistema web de seguimiento de cartera de clientes con asignación de operadores, historial de gestiones, panel de estadísticas (Tablero) y control de accesos.
 
 ---
 
 ## Tecnologías
 
-- **Backend:** PHP 7.4+ con PDO
+- **Backend:** PHP 7.4+ con PDO (Sin frameworks)
 - **Base de datos:** MySQL / MariaDB
 - **Frontend:** HTML + Tailwind CSS + JavaScript (Fetch API)
 - **Servidor local:** XAMPP (Apache + MySQL)
@@ -16,257 +16,82 @@ Sistema web de seguimiento de cartera de clientes con asignación de operadores,
 
 ## Estructura de archivos
 
-```
+```text
 /
-├── index.php                   → App principal (login + dashboard)
+├── index.php                   → App principal (login, cartera activa, equipo y tablero)
 ├── login.php                   → Autenticación de usuarios
 ├── db.php                      → Conexión PDO (detecta local vs producción)
 ├── api_clientes.php            → Lista, busca, filtra y asigna clientes
-├── api_gestion.php             → Guarda gestiones en el historial
+├── api_gestion.php             → Guarda gestiones en el historial (con validación de roles)
 ├── api_historial.php           → Devuelve la línea de tiempo de un cliente
 ├── api_usuarios.php            → CRUD de operadores
 ├── api_asignar.php             → Asignación manual de legajos
-├── api_importar_csv.php        → Importación masiva de clientes desde CSV
-└── api_importar_asignaciones.php → Importación masiva de asignaciones desde CSV
-```
+├── api_importar_csv.php        → Importación masiva de clientes desde CSV (con reglas de reingreso)
+├── api_importar_asignaciones.php → Importación masiva de asignaciones desde CSV
+└── api_dashboard.php           → Extrae métricas globales, estados de cartera y rendimiento por operador
+Roles y Permisos
+El sistema maneja 3 niveles de acceso estandarizados:
 
----
+Admin (Administrador Total):
 
-## Base de datos
+Acceso total al sistema.
 
-### Tablas principales
+Acceso al Tablero (Dashboard) con métricas financieras y de rendimiento operativo.
 
-#### `clientes`
-Datos fijos del cliente importados desde el sistema de origen.
+Puede importar clientes y asignaciones vía CSV.
 
-| Campo | Tipo | Descripción |
-|-------|------|-------------|
-| id | INT AUTO_INCREMENT | PK |
-| l_entidad_id | INT UNIQUE | ID externo del sistema origen |
-| legajo | VARCHAR(50) | **Clave de negocio principal** |
-| razon_social | VARCHAR(150) | Nombre del cliente |
-| nro_documento | VARCHAR(20) | DNI o CUIT |
-| email | VARCHAR(100) | Email del cliente (campo disponible, no usado en UI actual) |
-| domicilio | VARCHAR(200) | Dirección + localidad (se concatenan al importar CSV) |
-| telefonos | VARCHAR(255) | Teléfonos separados por guión |
-| dias_atraso | INT | Días de mora (default 0) |
-| mora | DECIMAL(15,2) | Importe de mora (default 0.00) |
-| total_vencido | DECIMAL(15,2) | Capital vencido |
-| vencimiento | DATE | Fecha de vencimiento |
-| ultimo_pago | DATE | Fecha del último pago registrado |
-| c_cuotas | INT | Cantidad de cuotas pendientes (default 0) |
-| sucursal | VARCHAR(100) | Sucursal de origen |
-| created_at | TIMESTAMP | Fecha de inserción del registro |
+Puede gestionar el equipo de usuarios (crear, editar, eliminar).
 
-> ⚠️ Las columnas `estado`, `fecha_promesa` y `monto_promesa` **no existen** en esta tabla.
-> Esos datos se leen siempre desde la última gestión en `gestiones_historial`.
+Acceso a acciones masivas (incluyendo eliminación de legajos).
 
----
+Colaborador (Coordinador):
 
-#### `gestiones_historial`
-Registro cronológico de todas las gestiones. Es la **única fuente de verdad** para el estado de un cliente.
+Acceso al Tablero (Dashboard) para monitorear el rendimiento del equipo.
 
-| Campo | Tipo | Descripción |
-|-------|------|-------------|
-| id | INT AUTO_INCREMENT | PK |
-| cliente_id | INT | Referencia al `id` de clientes (legacy, no usar para lógica) |
-| legajo | VARCHAR(50) | **Vínculo principal con el cliente** |
-| usuario_id | INT | Operador que realizó la gestión |
-| estado | ENUM | Estado de la gestión (default: `promesa`) |
-| fecha_promesa | DATE | Fecha acordada de pago |
-| monto_promesa | DECIMAL(10,2) | Monto acordado |
-| observaciones | TEXT | Detalle de la llamada |
-| fecha_gestion | TIMESTAMP | Fecha y hora automática |
+Puede asignar carteras y ver a todo el personal.
 
-> ⚠️ El campo `cliente_id` existe en la BD pero **no se usa** en la lógica actual. Toda búsqueda y JOIN se hace por `legajo`.
+No puede importar CSV ni eliminar usuarios/legajos.
 
-**Estados válidos:**
-| Valor | Color en UI |
-|-------|-------------|
-| `promesa` | 🔵 Azul |
-| `no_responde` | 🟠 Naranja |
-| `no_corresponde` | 🔴 Rojo |
-| `llamar` | 🟢 Verde |
-| `numero_baja` | ⚫ Gris |
-| `otro` | 🟣 Violeta |
-| `al_dia` | 🟩 Verde agua |
+Operador (Base):
 
----
+Solo visualiza la cartera general, ocultando métricas financieras globales.
 
-#### `asignaciones`
-Relaciona legajos con operadores.
+No tiene acceso a la pestaña del Tablero de métricas.
 
-| Campo | Tipo | Descripción |
-|-------|------|-------------|
-| legajo | VARCHAR(50) PK | Legajo del cliente |
-| usuario_id | INT FK | Operador asignado |
+Restricción de Seguridad: No tiene permisos para clasificar a un cliente como "Al Día". Si un cliente ya está "Al Día", el sistema bloquea el formulario impidiendo que el operador lo edite.
 
----
+Reglas de Negocio y Automatizaciones
+Tablero de Rendimiento: Calcula en tiempo real la efectividad de los operadores (Promesas logradas / Clientes gestionados), mostrando colores semánticos (Verde >30%, Naranja >15%, Rojo <15%).
 
-#### `usuarios`
-Cuentas de acceso al sistema.
+Lógica de Importación CSV (Reingresos): Si un cliente estaba marcado como "Al Día" pero vuelve a aparecer en un nuevo CSV importado, el sistema asume que volvió a tener deuda y le inserta automáticamente un estado NULL (Pendiente / Sin gestión).
 
-| Campo | Tipo | Descripción |
-|-------|------|-------------|
-| id | INT AUTO_INCREMENT | PK |
-| nombre | VARCHAR(100) | Nombre completo |
-| email | VARCHAR(100) UNIQUE | Usuario de login |
-| password | VARCHAR(255) | Hash bcrypt |
-| rol | ENUM('admin','operador','colaborador') | Nivel de acceso |
-| activo | TINYINT(1) | 1 = habilitado, 0 = deshabilitado (default 1) |
-| created_at | TIMESTAMP | Fecha de creación del usuario |
+Lógica de Importación CSV (Salidas): Si un cliente que estaba en la base de datos ya no figura en el CSV importado, el sistema lo pasa automáticamente al estado "Al Día".
 
----
+Base de datosTablas principalesclientesDatos fijos del cliente importados desde el sistema de origen.CampoTipoDescripciónidINT AUTO_INCREMENTPKl_entidad_idINT UNIQUEID externo del sistema origenlegajoVARCHAR(50)Clave de negocio principalrazon_socialVARCHAR(150)Nombre del deudornro_documentoVARCHAR(50)DNI / CUITtotal_vencidoDECIMAL(10,2)Monto adeudadodias_atrasoINTDías en moraultimo_pagoDATEFecha
 
-## Arquitectura de estados
+gestiones_historialLínea de tiempo de cada cliente. La gestión con el id más alto determina el "estado actual" del cliente.CampoTipoDescripciónidINT AUTO_INCREMENTPKlegajoVARCHAR(50)FK lógica a clientes.legajousuario_idINTFK a usuarios.id (quién hizo la gestión)estadoENUM'promesa', 'no_responde', 'no_corresponde', 'llamar', 'numero_baja', 'otro', 'al_dia', 'carta'fecha_promesaDATESolo si estado = 'promesa'monto_promesaDECIMALSolo si estado = 'promesa'observacionesTEXTNotas del operadorfecha_gestionDATETIMETimestamp automático
 
-El estado de un cliente **no se guarda en `clientes`**. Se obtiene dinámicamente:
+Nota: El estado NULL o la ausencia de registros en esta tabla se interpreta en el frontend como estado "Pendiente").asignacionesRelación 1 a 1 entre cliente y operador actual.CampoTipoDescripciónidINT AUTO_INCREMENTPKlegajoVARCHAR(50)FK lógica a clientes.legajousuario_idINTFK a usuarios.id
 
-```sql
--- Estado actual de un cliente = última fila de su historial
-SELECT estado, fecha_promesa, monto_promesa
-FROM gestiones_historial
-WHERE legajo = '012887'
-ORDER BY fecha_gestion DESC
-LIMIT 1;
-```
+usuariosPersonal del sistema.CampoTipoDescripciónidINT AUTO_INCREMENTPKusuarioVARCHAR(50)Email o username para loginclaveVARCHAR(255)Hash de la contraseñanombreVARCHAR(100)Nombre para mostrar en UIrolENUM'admin', 'operador', 'colaborador'activoTINYINT(1)1=Activo, 0=Bloqueado
 
-`api_clientes.php` hace este JOIN automáticamente con un subquery para todos los clientes de la lista.
+Bugfix histórico (Login)
+Síntoma: No se podía iniciar sesión. El botón se quedaba trabado o recargaba el formulario correctamente.
+Problema: Al hacer clic en "Entrar", el formulario se enviaba como GET en lugar de POST, lo que causaba que login.php nunca procesara las credenciales (requiere REQUEST_METHOD === 'POST'). El handler de JavaScript que interceptaba el submit estaba dentro del bloque PHP <?php else: ?> (es decir, solo se cargaba cuando el usuario ya estaba autenticado), por lo que nunca estaba disponible en la pantalla de login.
 
----
+Solución aplicada en index.php:
 
-## Semáforo visual
+Se agregó onsubmit="handleLogin(event)" directamente en el <form> del login.
 
-| Condición | Color del borde |
-|-----------|----------------|
-| `dias_atraso > 90` | 🔴 Rojo |
-| Última gestión = `promesa` | 🟡 Amarillo |
-| Cualquier otro caso | 🟢 Verde |
+Se creó la función handleLogin() en un <script> separado al final del </body>, garantizando que esté disponible siempre, independientemente del estado de sesión.
 
----
+Se eliminó el handler anterior que era inalcanzable.
 
-## Roles de usuario
+Nota: La tabla usuarios tiene columnas activo y created_at que ya están documentadas en la sección de BD. El campo activo actualmente no se valida en login.php — un usuario con activo = 0 puede seguir ingresando. Considerar agregar AND activo = 1 al query de login si se necesita deshabilitar cuentas.
 
-### Administrador (`admin`)
-- Ve todos los clientes de la cartera
-- Puede asignar/reasignar legajos a operadores
-- Puede filtrar por operador
-- Puede importar CSV de clientes y asignaciones
-- Puede crear, editar y eliminar operadores
+Notas importantes
+El campo legajo es la clave de negocio que vincula todas las tablas. Nunca usar id para relacionar datos entre tablas.
 
-### Colaborador (`colaborador`)
-- Ve todos los clientes de la cartera (igual que admin)
-- Puede asignar/reasignar legajos a operadores
-- Puede filtrar por operador
-- **No puede** importar CSV, crear/editar/eliminar usuarios ni eliminar clientes
+El campo id de clientes puede ser 0 en registros importados antes de agregar AUTO_INCREMENT. Toda la lógica crítica usa legajo.
 
-### Operador (`operador`)
-- Ve solo los clientes asignados a su usuario
-- Puede gestionar y cargar observaciones
-- No puede ver clientes de otros operadores
-
----
-
-## Importación de clientes (CSV)
-
-El archivo CSV debe tener exactamente estas **13 columnas** en orden:
-
-```
-l_entidad_id, legajo, razon_social, nro_documento, ultimo_pago,
-c_cuotas, localidad, domicilio, dias_atraso, total_vencido,
-vencimiento, sucursal, telefonos
-```
-
-- Delimitador: coma `,` o punto y coma `;` (se detecta automáticamente)
-- Encoding: UTF-8
-- La primera fila debe ser el encabezado
-- `l_entidad_id` es la clave única — si ya existe, actualiza el registro
-
----
-
-## Importación de asignaciones (CSV)
-
-Formato de 2 columnas:
-
-```
-email_operador, legajo
-```
-
-El sistema busca el `usuario_id` según el email y crea o actualiza la asignación.
-
----
-
-## Instalación local (XAMPP)
-
-1. Copiar la carpeta del proyecto en `C:\xampp\htdocs\seguimiento\`
-2. Crear la base de datos `u204222083_crm_ctacte_cli` en phpMyAdmin
-3. Importar el archivo `.sql` con la estructura de tablas
-4. Verificar que `db.php` tenga las credenciales correctas para local:
-   ```php
-   $db_user = 'root';
-   $db_pass = '';
-   ```
-5. Acceder desde el navegador: `http://localhost/seguimiento/`
-
----
-
-## Configuración de producción (Hostinger)
-
-En `db.php` la conexión a producción se activa automáticamente cuando el host no es `localhost`:
-
-```php
-$db_user = 'u204222083_roque';
-$db_pass = '!D^^^0iW';
-$db_name = 'u204222083_crm_ctacte_cli';
-```
-
----
-
-## SQL de mantenimiento
-
-```sql
--- Limpiar todos los datos (mantiene usuarios)
-SET FOREIGN_KEY_CHECKS = 0;
-TRUNCATE TABLE gestiones_historial;
-TRUNCATE TABLE asignaciones;
-TRUNCATE TABLE clientes;
-SET FOREIGN_KEY_CHECKS = 1;
-
--- Restaurar AUTO_INCREMENT si se rompe
-ALTER TABLE gestiones_historial MODIFY id INT(11) NOT NULL AUTO_INCREMENT;
-ALTER TABLE clientes MODIFY id INT(11) NOT NULL AUTO_INCREMENT;
-
--- Ver el estado actual de cada cliente
-SELECT c.legajo, c.razon_social, g.estado, g.fecha_gestion
-FROM clientes c
-LEFT JOIN gestiones_historial g ON g.legajo = c.legajo
-LEFT JOIN (
-    SELECT legajo, MAX(fecha_gestion) as ultima
-    FROM gestiones_historial GROUP BY legajo
-) ult ON g.legajo = ult.legajo AND g.fecha_gestion = ult.ultima
-ORDER BY c.razon_social;
-```
-
----
-
-## Historial de cambios
-
-### v1.1 — 2026-03-21
-
-#### 🐛 Fix: Login no procesaba el formulario correctamente
-**Problema:** Al hacer clic en "Entrar", el formulario se enviaba como `GET` en lugar de `POST`, lo que causaba que `login.php` nunca procesara las credenciales (requiere `REQUEST_METHOD === 'POST'`). El handler de JavaScript que interceptaba el submit estaba dentro del bloque PHP `<?php else: ?>` (es decir, solo se cargaba cuando el usuario ya estaba autenticado), por lo que nunca estaba disponible en la pantalla de login.
-
-**Solución aplicada en `index.php`:**
-- Se agregó `onsubmit="handleLogin(event)"` directamente en el `<form>` del login.
-- Se creó la función `handleLogin()` en un `<script>` separado al final del `</body>`, garantizando que esté disponible siempre, independientemente del estado de sesión.
-- Se eliminó el handler anterior que era inalcanzable.
-
-**Nota:** La tabla `usuarios` tiene columnas `activo` y `created_at` que ya están documentadas en la sección de BD. El campo `activo` actualmente no se valida en `login.php` — un usuario con `activo = 0` puede seguir ingresando. Considerar agregar `AND activo = 1` al query de login si se necesita deshabilitar cuentas.
-
----
-
-## Notas importantes
-
-- El campo `legajo` es la **clave de negocio** que vincula todas las tablas. Nunca usar `id` para relacionar datos entre tablas.
-- El campo `id` de `clientes` puede ser 0 en registros importados antes de agregar `AUTO_INCREMENT`. Toda la lógica crítica usa `legajo`.
-- Los passwords se almacenan con `password_hash()` de PHP (bcrypt). Nunca en texto plano.
+Los passwords se almacenan con password_hash() de PHP (bcrypt). Nunca en texto plano.
