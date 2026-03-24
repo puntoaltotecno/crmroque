@@ -199,11 +199,17 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
                         <option value="0">Todos los Operadores</option>
                         <option value="-1">👤 Sin Asignar</option>
                     </select>
+                    <div class="flex items-center gap-2 bg-white border border-slate-200 rounded-2xl px-4 shadow-sm" title="Límite de filas en pantalla">
+                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap"># Filas</span>
+                        <input type="number" id="filter-limit" min="1" max="500" value="200" onchange="load(); stats();"
+                            class="w-16 py-4 bg-transparent text-xs font-black text-slate-700 outline-none text-center">
+                    </div>
                     <?php endif; ?>
                 </div>
 
                 <div class="flex gap-2 w-full lg:w-auto">
                     <button onclick="exportarExcel()" class="flex-1 lg:flex-none bg-blue-50 text-blue-600 px-6 py-4 rounded-2xl text-[11px] font-black uppercase border border-blue-100 hover:bg-blue-100 transition">Exportar</button>
+                    
                     <?php if($rol_usuario === 'admin'): ?>
                     <button onclick="document.getElementById('csv').click()" class="flex-1 lg:flex-none bg-slate-900 text-white px-8 py-4 rounded-2xl text-[11px] font-black uppercase shadow-xl hover:bg-slate-800 transition">Importar</button>
                     <input type="file" id="csv" class="hidden" accept=".csv" onchange="subirCSV(this)">
@@ -357,8 +363,7 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
         </div>
     </div>
     <?php endif; ?>
-
-    <script>
+<script>
     const currentUserId = <?= (int)$user_id ?>;
     const isAdmin = <?= $rol_usuario === 'admin' ? 'true' : 'false' ?>;
     const isColab = <?= $rol_usuario === 'colaborador' ? 'true' : 'false' ?>;
@@ -386,6 +391,16 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
     const api_usuarios = 'api_usuarios.php';
     const api_dashboard = 'api_dashboard.php';
 
+    // ── EXPORTACIÓN CSV PROFESIONAL ──
+    function exportarExcel() { 
+        console.log("Iniciando exportación de cartera...");
+        const q = document.getElementById('search').value;
+        const est = document.getElementById('filter-estado').value;
+        const op = document.getElementById('filter-operador')?.value || 0;
+        let url = `exportar_csv.php?q=${encodeURIComponent(q)}&estado=${encodeURIComponent(est)}&operador_id=${encodeURIComponent(op)}`;
+        window.location.href = url;
+    }
+
     // ── Carga de Rendimiento de Dashboard ──
     const loadDashboard = async () => {
         if (!canAssign) return;
@@ -395,7 +410,6 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
             const data = await res.json();
             
             if (data.success) {
-                // Actualizar Tarjetas de Resumen General
                 if (document.getElementById('dash-asignados')) {
                     document.getElementById('dash-asignados').innerText = data.resumen.total_asignados || '0';
                     document.getElementById('dash-gestionados').innerText = data.resumen.total_gestionados || '0';
@@ -403,7 +417,6 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
                     document.getElementById('dash-cobertura').innerText = (data.resumen.cobertura || '0') + '%';
                 }
 
-                // Renderizar Tarjetas de Estados
                 if (document.getElementById('dash-estados') && data.estados) {
                     document.getElementById('dash-estados').innerHTML = cfgEstados.map(est => {
                         const count = data.estados[est.id] || 0;
@@ -414,7 +427,6 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
                     }).join('');
                 }
 
-                // Renderizar Tabla de Operadores
                 document.getElementById('listaDashboard').innerHTML = data.data.map(op => {
                     const asignados = parseInt(op.total_asignados) || 0;
                     const gestionados = parseInt(op.clientes_gestionados) || 0;
@@ -443,10 +455,16 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
         const q = document.getElementById('search').value;
         const est = document.getElementById('filter-estado').value;
         const op = document.getElementById('filter-operador')?.value || 0;
-        let url = `${api_clientes}search&q=${encodeURIComponent(q)}&estado=${est}&operador_id=${op}`;
+        const limit = Math.min(parseInt(document.getElementById('filter-limit')?.value || 200), 500);
+        let url = `${api_clientes}search&q=${encodeURIComponent(q)}&estado=${est}&operador_id=${op}&limit=${limit}`;
 
         try {
-            const res = await fetch(url), data = await res.json();
+            const res = await fetch(url);
+            const rawData = await res.json();
+            
+            // ORDENAR: De menor a mayor por cantidad de días de atraso
+            const data = rawData.sort((a, b) => parseInt(a.dias_atraso || 0) - parseInt(b.dias_atraso || 0));
+
             document.getElementById('lista').innerHTML = data.map(c => {
                 let badgeClass = `badge-${c.estado_actual}`;
                 let labelEstado = c.estado_actual === 'sin_gestion' ? 'PENDIENTE' : c.estado_actual.replace('_', ' ').toUpperCase();
@@ -460,7 +478,8 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
                     </select>` : 
                     `<p class="mt-2 text-[9px] font-black text-blue-500 uppercase tracking-widest">👤 ${c.operador_asignado?.split(' ')[0] || 'SIN ASIGNAR'}</p>`;
 
-                let trMonto = isOperador ? '-' : `$${parseFloat(c.total_vencido).toLocaleString('es-AR')}`;
+                // SE REMOVIÓ LA RESTRICCIÓN PARA OPERADORES, AHORA TODOS VEN EL MONTO
+                let trMonto = `$${parseFloat(c.total_vencido).toLocaleString('es-AR')}`;
 
                 return `<tr class="hover:bg-blue-50/50 cursor-pointer transition border-l-[6px] border-l-${c.semaforo === 'blanco' ? 'transparent' : (c.semaforo === 'rojo' ? 'rose-500' : (c.semaforo === 'amarillo' ? 'amber-400' : 'emerald-500'))}" ondblclick='openModal(${JSON.stringify(c).replace(/'/g, "\\'")})'>
                     ${checkHTML}
@@ -611,7 +630,10 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
         document.getElementById('mLegajo').innerText = `ID: ${c.l_entidad_id || '-'} • Legajo: ${c.legajo}`;
         document.getElementById('mSucursal').innerText = c.sucursal || 'Central';
         if (canAssign) document.getElementById('mAsignacion').value = c.operador_id || '';
-        document.getElementById('mTotal').innerText = isOperador ? '-' : `$${parseFloat(c.total_vencido).toLocaleString('es-AR')}`;
+        
+        // SE REMOVIÓ LA RESTRICCIÓN PARA OPERADORES EN EL MODAL
+        document.getElementById('mTotal').innerText = `$${parseFloat(c.total_vencido).toLocaleString('es-AR')}`;
+        
         document.getElementById('mDias').innerText = c.dias_atraso || '0'; 
         document.getElementById('mCuotas').innerText = c.c_cuotas || '0';
         document.getElementById('mDomicilio').innerText = c.domicilio || '-'; 
@@ -684,8 +706,6 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
     function editarUsuario(u) { document.getElementById('uId').value = u.id; document.getElementById('uNom').value = u.nombre; document.getElementById('uMail').value = u.usuario; document.getElementById('uRol').value = u.rol; document.getElementById('modalUser').classList.replace('hidden', 'flex'); }
     async function eliminarUsuario(id, nom) { if(!confirm(`¿Eliminar al operador ${nom}?`)) return; const fd = new FormData(); fd.append('id', id); await fetch(api_usuarios+'?action=delete', {method:'POST', body:fd}); loadPersonal(); if(canAssign) loadDashboard(); }
     if(document.getElementById('userForm')){ document.getElementById('userForm').onsubmit = async (e) => { e.preventDefault(); await fetch(api_usuarios+'?action=save', {method:'POST', body:new FormData(e.target)}); document.getElementById('modalUser').classList.replace('flex', 'hidden'); loadPersonal(); if(canAssign) loadDashboard(); }; }
-
-    function exportarExcel() { /* Tu lógica de exportación */ }
     
     // ── GESTIÓN DE IMPORTACIÓN DE CSV MEJORADA CON OVERLAY ──
     async function subirCSV(input) { 
