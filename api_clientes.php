@@ -24,7 +24,52 @@ try {
                         JOIN (SELECT MAX(id) as max_id FROM gestiones_historial GROUP BY legajo) g2
                         ON g1.id = g2.max_id";
 
-    // ── CONSTRUIR WHERE DINÁMICO (Se usa para stats y lista) ──
+    // CORE SELECT (Lo usamos tanto para la lista principal como para las notificaciones)
+    $select_core = "SELECT c.*, 
+                    u.nombre as operador_asignado,
+                    u.id as operador_id,
+                    IFNULL(gest.estado, 'sin_gestion') as estado_actual,
+                    gest.fecha_promesa,
+                    gest.monto_promesa,
+                    CASE 
+                        WHEN gest.estado = 'promesa' AND gest.fecha_promesa < CURDATE() THEN 'rojo'
+                        WHEN gest.estado = 'promesa' THEN 'amarillo'
+                        WHEN gest.estado IS NULL OR gest.estado = 'sin_gestion' THEN 'blanco'
+                        ELSE 'verde'
+                    END as semaforo";
+
+    // ── NOTIFICACIONES (Alertas de Agenda) ──
+    if ($action === 'notificaciones') {
+        // Solo traemos las que tienen fecha asginada y esa fecha es HOY o ANTERIOR
+        $where_noti = " WHERE gest.fecha_promesa IS NOT NULL AND gest.fecha_promesa <= CURDATE() ";
+        $params_noti = [];
+
+        if (!$can_see_all) {
+            $where_noti .= " AND a.usuario_id = :uid ";
+            $params_noti[':uid'] = $uid;
+        }
+
+        $sql_noti = "$select_core
+            FROM clientes c
+            LEFT JOIN asignaciones a   ON c.legajo = a.legajo
+            LEFT JOIN usuarios u       ON a.usuario_id = u.id
+            LEFT JOIN ($subquery_ultima) gest ON c.legajo = gest.legajo
+            $where_noti
+            ORDER BY gest.fecha_promesa ASC
+            LIMIT 50"; // Limitamos a 50 para no colapsar la interfaz visual de alertas
+
+        $stmt = $pdo->prepare($sql_noti);
+        $stmt->execute($params_noti);
+        $notificaciones = $stmt->fetchAll();
+        
+        echo json_encode([
+            'count' => count($notificaciones),
+            'data' => $notificaciones
+        ]);
+        exit;
+    }
+
+    // ── CONSTRUIR WHERE DINÁMICO (Se usa para stats y lista principal) ──
     $where = " WHERE (c.razon_social LIKE :q OR c.nro_documento LIKE :q OR c.legajo LIKE :q OR c.sucursal LIKE :q)";
     $params = [':q' => "%$q%"];
 
@@ -67,22 +112,9 @@ try {
         exit;
     }
 
-    // ── LISTADO PRINCIPAL (AQUÍ ESTÁ LA CORRECCIÓN DEL ORDENAMIENTO) ──
+    // ── LISTADO PRINCIPAL ──
     $limit = min((int)($_GET['limit'] ?? 200), 500);
-    $select_core = "SELECT c.*, 
-                    u.nombre as operador_asignado,
-                    u.id as operador_id,
-                    IFNULL(gest.estado, 'sin_gestion') as estado_actual,
-                    gest.fecha_promesa,
-                    gest.monto_promesa,
-                    CASE 
-                        WHEN gest.estado = 'promesa' AND gest.fecha_promesa < CURDATE() THEN 'rojo'
-                        WHEN gest.estado = 'promesa' THEN 'amarillo'
-                        WHEN gest.estado IS NULL OR gest.estado = 'sin_gestion' THEN 'blanco'
-                        ELSE 'verde'
-                    END as semaforo";
 
-    // CAST(c.dias_atraso AS SIGNED) fuerza a MySQL a tratarlo como número real para ordenarlo bien.
     $sql = "$select_core
             FROM clientes c
             LEFT JOIN asignaciones a   ON c.legajo = a.legajo

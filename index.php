@@ -35,7 +35,7 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
         .badge-al_dia { background: #ccfbf1; color: #0f766e; }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-900 min-h-screen">
+<body class="bg-slate-50 text-slate-900 min-h-screen" onclick="cerrarDropdownNoti()">
 
     <?php if (!$user_id): ?>
     <div class="flex items-center justify-center min-h-screen p-6 bg-slate-100">
@@ -62,20 +62,15 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
             try {
                 const res = await fetch('login.php', { method: 'POST', body: new FormData(e.target) });
                 const d = await res.json();
-                if (d.success) {
-                    location.reload();
-                } else {
+                if (d.success) { location.reload(); } 
+                else {
                     const err = document.getElementById('lError');
                     err.innerText = d.message || 'Credenciales incorrectas.';
                     err.classList.remove('hidden');
                     btn.disabled = false;
                     btn.innerText = ogText;
                 }
-            } catch(ex) {
-                alert('Error de conexión. Verificá que el servidor esté activo.');
-                btn.disabled = false;
-                btn.innerText = ogText;
-            }
+            } catch(ex) { alert('Error de conexión.'); btn.disabled = false; btn.innerText = ogText; }
         }
     </script>
 
@@ -87,7 +82,7 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
                     <div class="bg-blue-600 w-10 h-10 rounded-xl flex items-center justify-center text-white font-black italic">R</div>
                     <h2 class="text-xl font-extrabold text-slate-800 italic tracking-tighter uppercase">CRM.ROQUE</h2>
                 </div>
-                <nav class="flex gap-8 border-b-0">
+                <nav class="flex gap-8 border-b-0 hidden md:flex">
                     <?php if($can_assign): ?>
                     <button onclick="switchTab('dashboard')" id="btn-dashboard" class="text-[11px] font-black uppercase tracking-widest text-slate-400 transition pb-1">Tablero</button>
                     <?php endif; ?>
@@ -97,9 +92,29 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
                     <?php endif; ?>
                 </nav>
             </div>
-            <div class="flex items-center gap-4">
-                <span class="text-[11px] font-black text-slate-500 uppercase tracking-widest">👤 <?= htmlspecialchars($nombre_usuario) ?></span>
-                <a href="?logout=1" class="bg-rose-50 text-rose-600 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase hover:bg-rose-100 transition">Salir</a>
+            
+            <div class="flex items-center gap-6">
+                <div class="relative cursor-pointer flex items-center justify-center w-10 h-10 bg-slate-100 rounded-xl hover:bg-slate-200 transition" onclick="toggleNotificaciones(event)">
+                    <span class="text-lg">🔔</span>
+                    <span id="noti-badge" class="hidden absolute -top-1 -right-1 bg-rose-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full shadow-sm">0</span>
+                    
+                    <div id="noti-dropdown" class="hidden absolute top-full right-0 mt-3 w-80 bg-white rounded-3xl shadow-2xl border border-slate-100 z-50 overflow-hidden cursor-default" onclick="event.stopPropagation()">
+                        <div class="bg-slate-900 px-5 py-4 flex justify-between items-center">
+                            <h4 class="text-white font-black text-xs uppercase tracking-widest">Alertas de Agenda</h4>
+                            <span id="noti-count-text" class="text-slate-400 text-[10px] font-bold">0</span>
+                        </div>
+                        <div id="noti-list" class="max-h-[60vh] overflow-y-auto custom-scroll divide-y divide-slate-100">
+                            <p class="text-center py-6 text-[10px] font-black uppercase text-slate-300">Cargando...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="w-px h-6 bg-slate-200 hidden md:block"></div>
+                
+                <div class="flex items-center gap-4">
+                    <span class="text-[11px] font-black text-slate-500 uppercase tracking-widest hidden md:block">👤 <?= htmlspecialchars($nombre_usuario) ?></span>
+                    <a href="?logout=1" class="bg-rose-50 text-rose-600 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase hover:bg-rose-100 transition">Salir</a>
+                </div>
             </div>
         </div>
     </header>
@@ -121,7 +136,6 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
 
         <?php if($can_assign): ?>
         <section id="sec-dashboard" class="hidden space-y-6">
-            
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-2xl font-black text-slate-800 uppercase italic tracking-tighter">Resumen General</h3>
                 <button onclick="loadDashboard()" class="text-[10px] font-black uppercase text-blue-500 hover:text-blue-700 transition bg-blue-50 px-4 py-2 rounded-xl">↻ Actualizar Tablero</button>
@@ -286,8 +300,8 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
     </div>
     <?php endif; ?>
 
-    <div id="modal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-md hidden items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-[3rem] w-full max-w-7xl shadow-2xl overflow-hidden flex flex-col md:flex-row h-[90vh] scale-95 transition-all duration-300" id="mContent">
+    <div id="modal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-md hidden items-center justify-center p-4 z-50" onclick="closeModal()">
+        <div class="bg-white rounded-[3rem] w-full max-w-7xl shadow-2xl overflow-hidden flex flex-col md:flex-row h-[90vh] scale-95 transition-all duration-300" id="mContent" onclick="event.stopPropagation()">
             <div class="w-full md:w-3/5 p-10 border-r flex flex-col bg-white overflow-y-auto custom-scroll">
                 <div class="flex justify-between items-start mb-6">
                     <div>
@@ -363,6 +377,7 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
         </div>
     </div>
     <?php endif; ?>
+
 <script>
     const currentUserId = <?= (int)$user_id ?>;
     const isAdmin = <?= $rol_usuario === 'admin' ? 'true' : 'false' ?>;
@@ -370,7 +385,6 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
     const canAssign = isAdmin || isColab;
     const isOperador = <?= $rol_usuario === 'operador' ? 'true' : 'false' ?>;
     
-    // Configuración visual de los Estados para el Dashboard
     const cfgEstados = [
         { id: 'sin_gestion', label: 'PENDIENTE', class: 'badge-sin_gestion' },
         { id: 'promesa', label: 'PROMESA', class: 'badge-promesa' },
@@ -385,15 +399,72 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
 
     let operadoresList = [];
     let selectedLegajos = []; 
+    let notificacionesData = [];
+
     const api_clientes = 'api_clientes.php?action=';
     const api_gestion = 'api_gestion.php';
     const api_historial = 'api_historial.php?legajo=';
     const api_usuarios = 'api_usuarios.php';
     const api_dashboard = 'api_dashboard.php';
 
-    // ── EXPORTACIÓN CSV PROFESIONAL ──
+    // ── GESTIÓN DE NOTIFICACIONES (CAMPANITA) ──
+    function toggleNotificaciones(e) {
+        e.stopPropagation();
+        document.getElementById('noti-dropdown').classList.toggle('hidden');
+    }
+
+    function cerrarDropdownNoti() {
+        const d = document.getElementById('noti-dropdown');
+        if (d && !d.classList.contains('hidden')) d.classList.add('hidden');
+    }
+
+    const loadNotificaciones = async () => {
+        try {
+            const res = await fetch(api_clientes + 'notificaciones');
+            const d = await res.json();
+            
+            const badge = document.getElementById('noti-badge');
+            const countText = document.getElementById('noti-count-text');
+            const list = document.getElementById('noti-list');
+            
+            notificacionesData = d.data;
+            
+            if (d.count > 0) {
+                badge.innerText = d.count;
+                badge.classList.remove('hidden');
+                countText.innerText = d.count + (d.count === 1 ? ' ALERTA' : ' ALERTAS');
+                
+                list.innerHTML = d.data.map((c, i) => {
+                    let f = c.fecha_promesa.split('-').reverse().join('/');
+                    let estado = c.estado_actual.replace('_', ' ').toUpperCase();
+                    let badgeClass = `badge-${c.estado_actual}`;
+                    
+                    return `<div class="p-4 hover:bg-slate-50 cursor-pointer transition flex flex-col gap-2" onclick='abrirNotificacion(event, ${i})'>
+                        <div class="flex justify-between items-start">
+                            <p class="font-black text-xs text-slate-800 uppercase truncate pr-2">${c.razon_social}</p>
+                            <span class="px-2 py-0.5 rounded text-[8px] font-black whitespace-nowrap ${badgeClass}">${estado}</span>
+                        </div>
+                        <div class="flex justify-between items-center mt-1">
+                            <p class="text-[10px] font-bold text-slate-500">Leg: ${c.legajo}</p>
+                            <p class="text-[10px] font-black text-rose-600 bg-rose-50 px-2 py-1 rounded-md">📅 Vencido: ${f}</p>
+                        </div>
+                    </div>`;
+                }).join('');
+            } else {
+                badge.classList.add('hidden');
+                countText.innerText = '0 ALERTAS';
+                list.innerHTML = '<p class="text-center py-8 text-[10px] font-black uppercase text-slate-300 tracking-widest">Agenda al día 🎉</p>';
+            }
+        } catch(e) { console.error("Error al cargar notificaciones", e); }
+    };
+
+    function abrirNotificacion(e, index) {
+        e.stopPropagation();
+        cerrarDropdownNoti();
+        openModal(notificacionesData[index]);
+    }
+
     function exportarExcel() { 
-        console.log("Iniciando exportación de cartera...");
         const q = document.getElementById('search').value;
         const est = document.getElementById('filter-estado').value;
         const op = document.getElementById('filter-operador')?.value || 0;
@@ -401,7 +472,6 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
         window.location.href = url;
     }
 
-    // ── Carga de Rendimiento de Dashboard ──
     const loadDashboard = async () => {
         if (!canAssign) return;
         try {
@@ -444,13 +514,9 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
                     </tr>`;
                 }).join('') || `<tr><td colspan="5" class="text-center py-10 text-slate-400 font-bold text-xs uppercase tracking-widest">No hay datos de rendimiento</td></tr>`;
             }
-        } catch (e) {
-            console.error(e);
-            document.getElementById('listaDashboard').innerHTML = `<tr><td colspan="5" class="text-center py-10 text-rose-400 font-bold text-xs uppercase tracking-widest">Error al cargar datos</td></tr>`;
-        }
+        } catch (e) { document.getElementById('listaDashboard').innerHTML = `<tr><td colspan="5" class="text-center py-10 text-rose-400 font-bold text-xs uppercase tracking-widest">Error al cargar datos</td></tr>`; }
     };
 
-    // ── Carga de clientes ──
     const load = async () => {
         const q = document.getElementById('search').value;
         const est = document.getElementById('filter-estado').value;
@@ -460,11 +526,8 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
 
         try {
             const res = await fetch(url);
-            const rawData = await res.json();
+            const data = await res.json();
             
-            // ORDENAR: De menor a mayor por cantidad de días de atraso
-            const data = rawData.sort((a, b) => parseInt(a.dias_atraso || 0) - parseInt(b.dias_atraso || 0));
-
             document.getElementById('lista').innerHTML = data.map(c => {
                 let badgeClass = `badge-${c.estado_actual}`;
                 let labelEstado = c.estado_actual === 'sin_gestion' ? 'PENDIENTE' : c.estado_actual.replace('_', ' ').toUpperCase();
@@ -478,7 +541,6 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
                     </select>` : 
                     `<p class="mt-2 text-[9px] font-black text-blue-500 uppercase tracking-widest">👤 ${c.operador_asignado?.split(' ')[0] || 'SIN ASIGNAR'}</p>`;
 
-                // SE REMOVIÓ LA RESTRICCIÓN PARA OPERADORES, AHORA TODOS VEN EL MONTO
                 let trMonto = `$${parseFloat(c.total_vencido).toLocaleString('es-AR')}`;
 
                 return `<tr class="hover:bg-blue-50/50 cursor-pointer transition border-l-[6px] border-l-${c.semaforo === 'blanco' ? 'transparent' : (c.semaforo === 'rojo' ? 'rose-500' : (c.semaforo === 'amarillo' ? 'amber-400' : 'emerald-500'))}" ondblclick='openModal(${JSON.stringify(c).replace(/'/g, "\\'")})'>
@@ -495,7 +557,6 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
         } catch(e) { console.error(e); }
     };
 
-    // ── Carga de personal y Roles ──
     const loadPersonal = async () => {
         const res = await fetch(api_usuarios+'?action=list');
         const data = await res.json();
@@ -517,7 +578,6 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
         }).join('');
     };
 
-    // ── Selecciones masivas ──
     function toggleSelectAll(e) { const checked = e.target.checked; document.querySelectorAll('.chk-legajo').forEach(chk => { chk.checked = checked; handleSelection(chk.value, checked); }); }
     function toggleSelection(e) { handleSelection(e.target.value, e.target.checked); }
     function handleSelection(legajo, isChecked) {
@@ -555,7 +615,6 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
         else alert('Error: ' + d.message);
     }
 
-    // ── Navigation Tabs ──
     function switchTab(tab) { 
         if(document.getElementById('sec-dashboard')) document.getElementById('sec-dashboard').classList.toggle('hidden', tab !== 'dashboard');
         document.getElementById('sec-clientes').classList.toggle('hidden', tab !== 'clientes'); 
@@ -578,7 +637,6 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
         if (tab === 'dashboard') loadDashboard();
     }
 
-    // ── Initialization ──
     window.onload = async () => { 
         if(canAssign) { 
             const res = await fetch(api_usuarios+'?action=list'); 
@@ -590,15 +648,12 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
             document.getElementById('mAsignacion').innerHTML = '<option value="">👤 Sin Asignar</option>' + opsHTML; 
             const bOp = document.getElementById('masivo_operador');
             if(bOp) bOp.innerHTML += opsHTML;
-
-            // Iniciar en dashboard para Admin/Colaborador
             switchTab('dashboard');
-        } else {
-            // Iniciar en clientes para Operador
-            switchTab('clientes');
-        }
+        } else { switchTab('clientes'); }
+        
         load(); 
         stats(); 
+        loadNotificaciones(); // Cargar la campanita al entrar
     };
 
     let searchTimeout;
@@ -607,7 +662,6 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
         searchTimeout = setTimeout(() => { load(); stats(); }, 400);
     };
 
-    // ── Estadísticas contextuales y Globales ──
     const stats = async () => { 
         const q = document.getElementById('search').value;
         const est = document.getElementById('filter-estado').value;
@@ -631,9 +685,7 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
         document.getElementById('mSucursal').innerText = c.sucursal || 'Central';
         if (canAssign) document.getElementById('mAsignacion').value = c.operador_id || '';
         
-        // SE REMOVIÓ LA RESTRICCIÓN PARA OPERADORES EN EL MODAL
         document.getElementById('mTotal').innerText = `$${parseFloat(c.total_vencido).toLocaleString('es-AR')}`;
-        
         document.getElementById('mDias').innerText = c.dias_atraso || '0'; 
         document.getElementById('mCuotas').innerText = c.c_cuotas || '0';
         document.getElementById('mDomicilio').innerText = c.domicilio || '-'; 
@@ -645,7 +697,6 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
         document.getElementById('mMon').value = c.monto_promesa || ''; 
         document.getElementById('mFec').value = c.fecha_promesa || '';
         
-        // ── BLOQUEO PARA OPERADORES SI ESTÁ AL DÍA ──
         const formElements = document.querySelectorAll('#gForm input, #gForm select, #gForm textarea');
         const btnGuardar = document.querySelector('#gForm button[type="submit"]');
         
@@ -662,7 +713,6 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
             btnGuardar.classList.remove('opacity-50', 'cursor-not-allowed');
             btnGuardar.classList.add('hover:bg-blue-700');
         }
-        // ──────────────────────────────────────────────
 
         const hRes = await fetch(api_historial + encodeURIComponent(c.legajo)), hData = await hRes.json();
         document.getElementById('mHis').innerHTML = hData.map(h => {
@@ -689,7 +739,8 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
                     e.target.elements['observacion'].value = ''; 
                     load(); 
                     stats(); 
-                    if(canAssign) loadDashboard(); // Refrescar métricas si el admin guardó gestión
+                    loadNotificaciones(); // Refrescar campanita al guardar!
+                    if(canAssign) loadDashboard(); 
                     document.getElementById('mContent').classList.replace('scale-100', 'scale-95'); setTimeout(() => document.getElementById('modal').classList.replace('flex', 'hidden'), 300); 
                 } 
                 else alert("Error: " + d.message);
@@ -701,16 +752,13 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
     async function cambiarAsignacionRapida(legajo, uid) { const fd = new FormData(); fd.append('legajo', legajo); fd.append('usuario_id', uid); await fetch(api_clientes+'assign', {method:'POST', body:fd}); stats(); if(canAssign) loadDashboard(); }
     function closeModal() { document.getElementById('mContent').classList.replace('scale-100', 'scale-95'); setTimeout(() => document.getElementById('modal').classList.replace('flex', 'hidden'), 300); }
     
-    // Modal Usuario (Admin)
     function openUserModal() { document.getElementById('uId').value = ''; document.getElementById('userForm').reset(); document.getElementById('modalUser').classList.replace('hidden', 'flex'); }
     function editarUsuario(u) { document.getElementById('uId').value = u.id; document.getElementById('uNom').value = u.nombre; document.getElementById('uMail').value = u.usuario; document.getElementById('uRol').value = u.rol; document.getElementById('modalUser').classList.replace('hidden', 'flex'); }
     async function eliminarUsuario(id, nom) { if(!confirm(`¿Eliminar al operador ${nom}?`)) return; const fd = new FormData(); fd.append('id', id); await fetch(api_usuarios+'?action=delete', {method:'POST', body:fd}); loadPersonal(); if(canAssign) loadDashboard(); }
     if(document.getElementById('userForm')){ document.getElementById('userForm').onsubmit = async (e) => { e.preventDefault(); await fetch(api_usuarios+'?action=save', {method:'POST', body:new FormData(e.target)}); document.getElementById('modalUser').classList.replace('flex', 'hidden'); loadPersonal(); if(canAssign) loadDashboard(); }; }
     
-    // ── GESTIÓN DE IMPORTACIÓN DE CSV MEJORADA CON OVERLAY ──
     async function subirCSV(input) { 
         if(!input.files[0]) return; 
-        
         const overlay = document.createElement('div');
         overlay.id = 'importOverlay';
         overlay.innerHTML = `<div style="position:fixed;inset:0;background:rgba(15,23,42,0.8);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:9999;flex-direction:column;color:white;">
@@ -721,13 +769,10 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
 
         const fd = new FormData(); 
         fd.append('file', input.files[0]); 
-        
         try { 
             const res = await fetch('api_importar_csv.php', {method:'POST', body:fd}); 
             const d = await res.json(); 
-            
             if (document.getElementById('importOverlay')) document.body.removeChild(overlay);
-            
             if(d.success) { 
                 const msg = d.count + (d.errores && d.errores.length ? '\\n\\nErrores:\\n' + d.errores.join('\\n') : '');
                 const resDiv = document.createElement('div');
@@ -737,39 +782,29 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
                             <div style="background:#dcfce7;color:#166534;width:60px;height:60px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1.5rem;font-size:24px;">✅</div>
                             <p style="font-weight:900;font-size:14px;color:#1e293b;text-transform:uppercase;letter-spacing:.1em;margin-bottom:1rem;">Importación completada</p>
                             <p style="font-size:13px;color:#475569;font-weight:600;white-space:pre-line;margin-bottom:1.5rem;">${msg}</p>
-                            <button onclick="this.closest('div').parentElement.parentElement.remove();load();stats();if(canAssign) loadDashboard();" style="background:#2563eb;color:white;border:none;padding:.75rem 2rem;border-radius:1rem;font-weight:900;font-size:11px;text-transform:uppercase;cursor:pointer;letter-spacing:.1em;">Aceptar</button>
+                            <button onclick="this.closest('div').parentElement.parentElement.remove();load();stats();loadNotificaciones();if(canAssign) loadDashboard();" style="background:#2563eb;color:white;border:none;padding:.75rem 2rem;border-radius:1rem;font-weight:900;font-size:11px;text-transform:uppercase;cursor:pointer;letter-spacing:.1em;">Aceptar</button>
                         </div>
                     </div>`;
                 document.body.appendChild(resDiv);
-            } else { 
-                alert('Error en la importación: ' + (d.message || 'Error desconocido')); 
-            }
+            } else { alert('Error en la importación: ' + (d.message || 'Error desconocido')); }
         } catch(e) { 
             if (document.getElementById('importOverlay')) document.body.removeChild(overlay);
             alert("Error crítico al procesar archivo."); 
-        } finally { 
-            input.value = ""; 
-        }
+        } finally { input.value = ""; }
     }
 
     async function subirCSVAsignaciones(input) { 
         if(!input.files[0]) return; 
-        const fd = new FormData(); 
-        fd.append('file', input.files[0]); 
-        
-        const ogBtn = input.previousElementSibling; 
-        const ogText = ogBtn.innerText;
-        ogBtn.innerText = 'Asignando...'; 
-        ogBtn.classList.add('animate-pulse');
-        
+        const fd = new FormData(); fd.append('file', input.files[0]); 
+        const ogBtn = input.previousElementSibling; const ogText = ogBtn.innerText;
+        ogBtn.innerText = 'Asignando...'; ogBtn.classList.add('animate-pulse');
         try { 
-            const res = await fetch('api_importar_asignaciones.php', {method:'POST', body:fd}); 
-            const d = await res.json(); 
-            if(d.success) { alert(d.count); load(); stats(); if(canAssign) loadDashboard(); } else { alert("Error: " + d.message); }
+            const res = await fetch('api_importar_asignaciones.php', {method:'POST', body:fd}); const d = await res.json(); 
+            if(d.success) { alert(d.count); load(); stats(); loadNotificaciones(); if(canAssign) loadDashboard(); } else { alert("Error: " + d.message); }
         } catch(e) { alert("Error al procesar el archivo de asignaciones."); } 
         finally { ogBtn.innerText = ogText; ogBtn.classList.remove('animate-pulse'); input.value = ""; }
     }
-    </script>
-    <?php endif; ?>
+</script>
+<?php endif; ?>
 </body>
 </html>
