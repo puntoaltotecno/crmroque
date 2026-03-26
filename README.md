@@ -200,7 +200,26 @@ ALTER TABLE `gestiones_historial`
 
 ---
 
-## Notas Importantes
+## 🚀 Últimas Actualizaciones (Marzo 2026)
+
+### 🔔 Nuevo Sistema de Notificaciones (Alertas de Agenda)
+* **Campana de Alertas Inteligente:** Se agregó un ícono de notificaciones en la barra superior con un contador en tiempo real.
+* **Control de Vencimientos:** El sistema detecta automáticamente cualquier gestión (Promesa, Llamar luego, Carta, etc.) cuya fecha agendada sea **igual o anterior al día de hoy**.
+* **Filtro por Roles:** Los *Operadores* solo reciben alertas de su propia cartera de clientes, mientras que los *Administradores* y *Colaboradores* tienen una vista global de todas las alertas del sistema.
+* **Acceso Rápido:** Al hacer clic en una alerta del menú desplegable, se abre instantáneamente el modal del cliente para gestionarlo sin tener que buscarlo en la tabla.
+
+### 🔄 Sincronización Inteligente (Importación de CSV)
+* **Motor de Importación Reescrito:** El archivo `api_importar_csv.php` ahora procesa los datos fila por fila consultando directamente a la base de datos, eliminando errores de actualización.
+* **Limpieza Automática (Deuda $0):** Si un cliente que estaba en la base de datos ya no figura en el nuevo archivo CSV (porque regularizó su deuda), el sistema automáticamente pone sus cuotas, días de atraso y monto vencido en `0`, y cambia su estado a `Al Día`.
+* **Reingreso de Clientes:** Si un cliente estaba "Al Día" pero vuelve a aparecer en el reporte de mora (CSV), el sistema le quita el estado "Al Día" y lo vuelve a poner como pendiente de gestión.
+* **Robustez de Formatos:** Detección automática de delimitadores (comas o punto y coma), limpieza de caracteres invisibles (BOM) y corrección automática de fechas que vengan con o sin hora (ej: `2025-11-20 09:26:55` se procesa como `2025-11-20`).
+
+### 📊 Mejoras en la Tabla Principal y UI
+* **Visibilidad de Montos:** Se liberó la restricción visual para los Operadores; ahora pueden ver los montos vencidos y los días de atraso directamente en la tabla y en el panel del cliente.
+* **Ordenamiento Numérico Real:** Se corrigió el listado general (`api_clientes.php`) usando `CAST(dias_atraso AS SIGNED)`. Ahora la tabla ordena a los clientes estrictamente de menor a mayor cantidad de días de atraso, evitando fallos de ordenamiento alfabético (ej. que 100 aparezca antes que 2).
+
+### ⚙️ Servidor y Base de Datos
+* **Sincronización de Zona Horaria:** Se configuró `db.php` para forzar la zona horaria `America/Argentina/Buenos_Aires` y el offset `-03:00` en MySQL. Esto garantiza que las fechas y horas de las gestiones guarden el momento exacto de Argentina, mitigando desfases al alojar el sistema en servidores extranjeros (como Hostinger).
 
 - **`legajo` es la clave de negocio universal** que vincula todas las tablas. Nunca usar `id` para relacionar datos entre tablas.
 - El campo `id` de `clientes` puede ser `0` en registros importados antes de agregar `AUTO_INCREMENT`. Toda la lógica crítica usa `legajo`.
