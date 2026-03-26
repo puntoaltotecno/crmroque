@@ -41,14 +41,11 @@ try {
         $params[':uid'] = $uid;
     }
 
-    // ── ESTADÍSTICAS (Totales Fijos + Filtros Dinámicos) ──
+    // ── ESTADÍSTICAS ──
     if ($action === 'stats') {
-        
-        // 1. Totales Fijos (Sin importar los filtros)
         $sql_global = "SELECT SUM(total_vencido) as deuda_total, COUNT(id) as total_clientes FROM clientes";
         $res_global = $pdo->query($sql_global)->fetch();
 
-        // 2. Totales Dinámicos (Respetando el WHERE de la búsqueda)
         $sql_filtered = "SELECT 
             SUM(CASE WHEN gest.estado = 'promesa' THEN 1 ELSE 0 END) as promesas,
             COUNT(c.id) as clientes_filtrados
@@ -61,7 +58,6 @@ try {
         $stmt->execute($params);
         $res = $stmt->fetch();
 
-        // Si es operador ocultamos la deuda total y el total de clientes
         echo json_encode([
             'deuda_total' => ($rol === 'operador') ? 0 : ($res_global['deuda_total'] ?: 0),
             'total_clientes' => ($rol === 'operador') ? 0 : ($res_global['total_clientes'] ?: 0),
@@ -71,7 +67,8 @@ try {
         exit;
     }
 
-    // ── LISTADO PRINCIPAL ──
+    // ── LISTADO PRINCIPAL (AQUÍ ESTÁ LA CORRECCIÓN DEL ORDENAMIENTO) ──
+    $limit = min((int)($_GET['limit'] ?? 200), 500);
     $select_core = "SELECT c.*, 
                     u.nombre as operador_asignado,
                     u.id as operador_id,
@@ -85,13 +82,15 @@ try {
                         ELSE 'verde'
                     END as semaforo";
 
+    // CAST(c.dias_atraso AS SIGNED) fuerza a MySQL a tratarlo como número real para ordenarlo bien.
     $sql = "$select_core
             FROM clientes c
             LEFT JOIN asignaciones a   ON c.legajo = a.legajo
             LEFT JOIN usuarios u       ON a.usuario_id = u.id
             LEFT JOIN ($subquery_ultima) gest ON c.legajo = gest.legajo
             $where
-            ORDER BY c.razon_social ASC LIMIT 200";
+            ORDER BY CAST(c.dias_atraso AS SIGNED) ASC, c.razon_social ASC 
+            LIMIT $limit";
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
