@@ -172,7 +172,7 @@ ALTER TABLE `gestiones_historial`
 
 ## Historial de Cambios
 
-### v1.5 — (2026-03-30)
+### v1.6 — (2026-03-30)
 ### 🌍 Búsqueda Global y Gestión Colaborativa
 * **Buscador Universal:** Al utilizar el campo de búsqueda (por Legajo, DNI o Razón Social), el sistema ahora rastrea en toda la base de datos, omitiendo temporalmente el filtro de cartera asignada del operador. Si el buscador está vacío, el operador vuelve automáticamente a su vista de clientes asignados.
 * **Trabajo Colaborativo Blindado:** Un operador puede atender y registrar gestiones para un cliente que pertenece a otro compañero. Esta gestión quedará firmada en el historial por el operador que la realizó (asegurando la trazabilidad), pero **la asignación original del cliente no se modifica**.
