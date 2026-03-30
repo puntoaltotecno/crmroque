@@ -172,6 +172,12 @@ ALTER TABLE `gestiones_historial`
 
 ## Historial de Cambios
 
+### v1.5 — (2026-03-30)
+### 🌍 Búsqueda Global y Gestión Colaborativa
+* **Buscador Universal:** Al utilizar el campo de búsqueda (por Legajo, DNI o Razón Social), el sistema ahora rastrea en toda la base de datos, omitiendo temporalmente el filtro de cartera asignada del operador. Si el buscador está vacío, el operador vuelve automáticamente a su vista de clientes asignados.
+* **Trabajo Colaborativo Blindado:** Un operador puede atender y registrar gestiones para un cliente que pertenece a otro compañero. Esta gestión quedará firmada en el historial por el operador que la realizó (asegurando la trazabilidad), pero **la asignación original del cliente no se modifica**.
+* **Alertas Visuales de Propiedad:** Al abrir la ficha de un cliente desde el buscador, el sistema detecta a quién pertenece. Si el cliente es de otro operador (o no está asignado), se despliega una advertencia visual amarilla indicando: *"⚠️ Asignado a [Nombre] - Tu gestión quedará a tu nombre"*, previniendo confusiones operativas.
+
 ### v1.5 — (2026-03-24)
 
 - 🕐 **Fix zona horaria:** `db.php` ahora establece `America/Argentina/Buenos_Aires` para PHP y `SET time_zone = '-03:00'` para MySQL en cada conexión. Corrige el desfase de 3 horas (UTC vs UTC-3) que afectaba el `fecha_gestion` grabado en `gestiones_historial`. Los registros anteriores a este fix conservan la hora incorrecta; los nuevos se graban con hora local correcta.
