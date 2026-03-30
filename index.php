@@ -306,7 +306,10 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
                 <div class="flex justify-between items-start mb-6">
                     <div>
                         <h3 id="mRazon" class="text-3xl font-black text-slate-800 uppercase tracking-tighter leading-none mb-2"></h3>
-                        <p id="mLegajo" class="text-blue-600 font-black text-[10px] uppercase tracking-widest"></p>
+                        <div class="flex items-center gap-3 mt-1">
+                            <p id="mLegajo" class="text-blue-600 font-black text-[10px] uppercase tracking-widest"></p>
+                            <span id="mWarningOtroOp" class="hidden bg-amber-100 text-amber-700 text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-lg border border-amber-200"></span>
+                        </div>
                     </div>
                     <div class="flex flex-col items-end gap-2">
                         <span id="mSucursal" class="bg-slate-100 px-4 py-2 rounded-xl text-[10px] font-black uppercase text-slate-500 italic"></span>
@@ -407,16 +410,9 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
     const api_usuarios = 'api_usuarios.php';
     const api_dashboard = 'api_dashboard.php';
 
-    // ── GESTIÓN DE NOTIFICACIONES (CAMPANITA) ──
-    function toggleNotificaciones(e) {
-        e.stopPropagation();
-        document.getElementById('noti-dropdown').classList.toggle('hidden');
-    }
-
-    function cerrarDropdownNoti() {
-        const d = document.getElementById('noti-dropdown');
-        if (d && !d.classList.contains('hidden')) d.classList.add('hidden');
-    }
+    // ── GESTIÓN DE NOTIFICACIONES ──
+    function toggleNotificaciones(e) { e.stopPropagation(); document.getElementById('noti-dropdown').classList.toggle('hidden'); }
+    function cerrarDropdownNoti() { const d = document.getElementById('noti-dropdown'); if (d && !d.classList.contains('hidden')) d.classList.add('hidden'); }
 
     const loadNotificaciones = async () => {
         try {
@@ -458,11 +454,7 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
         } catch(e) { console.error("Error al cargar notificaciones", e); }
     };
 
-    function abrirNotificacion(e, index) {
-        e.stopPropagation();
-        cerrarDropdownNoti();
-        openModal(notificacionesData[index]);
-    }
+    function abrirNotificacion(e, index) { e.stopPropagation(); cerrarDropdownNoti(); openModal(notificacionesData[index]); }
 
     function exportarExcel() { 
         const q = document.getElementById('search').value;
@@ -653,7 +645,7 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
         
         load(); 
         stats(); 
-        loadNotificaciones(); // Cargar la campanita al entrar
+        loadNotificaciones();
     };
 
     let searchTimeout;
@@ -685,6 +677,16 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
         document.getElementById('mSucursal').innerText = c.sucursal || 'Central';
         if (canAssign) document.getElementById('mAsignacion').value = c.operador_id || '';
         
+        // --- NUEVA LÓGICA DE ALERTA VISUAL (CLIENTE DE OTRO OP) ---
+        const warnBadge = document.getElementById('mWarningOtroOp');
+        if(isOperador && c.operador_id != currentUserId) {
+            warnBadge.classList.remove('hidden');
+            warnBadge.innerText = c.operador_id ? `⚠️ Asignado a ${c.operador_asignado?.split(' ')[0] || 'otro operador'} - Tu gestión quedará a tu nombre` : `⚠️ Sin asignar - Tu gestión quedará a tu nombre`;
+        } else {
+            warnBadge.classList.add('hidden');
+        }
+        // ----------------------------------------------------------
+
         document.getElementById('mTotal').innerText = `$${parseFloat(c.total_vencido).toLocaleString('es-AR')}`;
         document.getElementById('mDias').innerText = c.dias_atraso || '0'; 
         document.getElementById('mCuotas').innerText = c.c_cuotas || '0';
@@ -739,7 +741,7 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
                     e.target.elements['observacion'].value = ''; 
                     load(); 
                     stats(); 
-                    loadNotificaciones(); // Refrescar campanita al guardar!
+                    loadNotificaciones();
                     if(canAssign) loadDashboard(); 
                     document.getElementById('mContent').classList.replace('scale-100', 'scale-95'); setTimeout(() => document.getElementById('modal').classList.replace('flex', 'hidden'), 300); 
                 } 

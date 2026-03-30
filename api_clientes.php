@@ -1,4 +1,5 @@
 <?php
+
 /**
  * ARCHIVO: api_clientes.php
  */
@@ -24,7 +25,7 @@ try {
                         JOIN (SELECT MAX(id) as max_id FROM gestiones_historial GROUP BY legajo) g2
                         ON g1.id = g2.max_id";
 
-    // CORE SELECT (Lo usamos tanto para la lista principal como para las notificaciones)
+    // CORE SELECT
     $select_core = "SELECT c.*, 
                     u.nombre as operador_asignado,
                     u.id as operador_id,
@@ -40,7 +41,6 @@ try {
 
     // ── NOTIFICACIONES (Alertas de Agenda) ──
     if ($action === 'notificaciones') {
-        // Solo traemos las que tienen fecha asginada y esa fecha es HOY o ANTERIOR
         $where_noti = " WHERE gest.fecha_promesa IS NOT NULL AND gest.fecha_promesa <= CURDATE() ";
         $params_noti = [];
 
@@ -56,12 +56,12 @@ try {
             LEFT JOIN ($subquery_ultima) gest ON c.legajo = gest.legajo
             $where_noti
             ORDER BY gest.fecha_promesa ASC
-            LIMIT 50"; // Limitamos a 50 para no colapsar la interfaz visual de alertas
+            LIMIT 50";
 
         $stmt = $pdo->prepare($sql_noti);
         $stmt->execute($params_noti);
         $notificaciones = $stmt->fetchAll();
-        
+
         echo json_encode([
             'count' => count($notificaciones),
             'data' => $notificaciones
@@ -69,21 +69,33 @@ try {
         exit;
     }
 
-    // ── CONSTRUIR WHERE DINÁMICO (Se usa para stats y lista principal) ──
+    // ── CONSTRUIR WHERE DINÁMICO ──
     $where = " WHERE (c.razon_social LIKE :q OR c.nro_documento LIKE :q OR c.legajo LIKE :q OR c.sucursal LIKE :q)";
     $params = [':q' => "%$q%"];
 
     if (!empty($f_estado)) {
         if ($f_estado === 'sin_gestion') $where .= " AND gest.estado IS NULL";
-        else { $where .= " AND gest.estado = :f_estado"; $params[':f_estado'] = $f_estado; }
+        else {
+            $where .= " AND gest.estado = :f_estado";
+            $params[':f_estado'] = $f_estado;
+        }
     }
 
+    // ── REGLA DE BÚSQUEDA UNIVERSAL ──
     if ($can_see_all) {
-        if ($f_operador > 0) { $where .= " AND a.usuario_id = :f_op"; $params[':f_op'] = $f_operador; } 
-        elseif ($f_operador === -1) { $where .= " AND a.usuario_id IS NULL"; }
+        if ($f_operador > 0) {
+            $where .= " AND a.usuario_id = :f_op";
+            $params[':f_op'] = $f_operador;
+        } elseif ($f_operador === -1) {
+            $where .= " AND a.usuario_id IS NULL";
+        }
     } else {
-        $where .= " AND a.usuario_id = :uid";
-        $params[':uid'] = $uid;
+        // Si el operador NO está buscando nada específico, mostramos SOLO sus clientes.
+        // Si ESTÁ buscando algo ($q no está vacío), ignoramos este filtro para que busque en toda la BD.
+        if (empty($q)) {
+            $where .= " AND a.usuario_id = :uid";
+            $params[':uid'] = $uid;
+        }
     }
 
     // ── ESTADÍSTICAS ──
@@ -106,7 +118,7 @@ try {
         echo json_encode([
             'deuda_total' => ($rol === 'operador') ? 0 : ($res_global['deuda_total'] ?: 0),
             'total_clientes' => ($rol === 'operador') ? 0 : ($res_global['total_clientes'] ?: 0),
-            'promesas' => $res['promesas'] ?: 0, 
+            'promesas' => $res['promesas'] ?: 0,
             'clientes_filtrados' => $res['clientes_filtrados'] ?: 0
         ]);
         exit;
@@ -127,8 +139,6 @@ try {
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
     echo json_encode($stmt->fetchAll());
-
 } catch (Exception $e) {
     echo json_encode(['error' => $e->getMessage()]);
 }
-?>
