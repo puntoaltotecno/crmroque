@@ -26,6 +26,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
 
+        // ── ACCIÓN: OCULTAR / RESTAURAR ──
+        if ($action === 'toggle_oculta') {
+            if ($rol !== 'admin' && $rol !== 'colaborador') {
+                throw new Exception("No tienes permisos para ocultar/restaurar gestiones.");
+            }
+            $id_gestion = (int)$_POST['id'];
+            $oculta = (int)$_POST['oculta'];
+            $stmt = $pdo->prepare("UPDATE gestiones_historial SET oculta = ? WHERE id = ?");
+            $stmt->execute([$oculta, $id_gestion]);
+            echo json_encode(['success' => true]);
+            exit;
+        }
+
         // ── ACCIÓN: EDITAR ──
         if ($action === 'edit') {
             $id_gestion = (int)$_POST['id'];

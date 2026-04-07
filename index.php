@@ -4,7 +4,7 @@
  */
 require_once 'db.php'; 
 
-if (isset($_GET['logout'])) { session_unset(); session_destroy(); header("Location: index.php"); exit; }
+if (isset($_GET['logout'])) { session_unset(); session_destroy(); header("Location: ./"); exit; }
 
 $nombre_usuario = $_SESSION['user_name'] ?? 'Usuario';
 $rol_usuario    = $_SESSION['user_rol'] ?? 'operador';
@@ -597,7 +597,25 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
         } catch(e) {}
     };
 
-    function abrirNotificacion(e, index) { e.stopPropagation(); cerrarDropdownNoti(); openModal(notificacionesData[index]); }
+    function abrirNotificacion(e, index) { e.stopPropagation(); cerrarDropdownNoti(); abrirClientePorLegajo(notificacionesData[index].legajo); }
+
+    async function abrirClientePorLegajo(legajo) {
+        try {
+            // Buscamos la ficha completa del cliente antes de abrir el modal
+            const res = await fetch(`${api_clientes}search&q=${encodeURIComponent(legajo)}&estado=&operador_id=0`);
+            const data = await res.json();
+            const cliente = data.find(c => c.legajo === legajo);
+            
+            if (cliente) {
+                openModal(cliente);
+            } else {
+                alert('No se pudo cargar la ficha completa de este cliente.');
+            }
+        } catch (e) {
+            console.error('Error al obtener datos del cliente:', e);
+            alert('Error al abrir la ficha del cliente.');
+        }
+    }
 
     function exportarExcel() { 
         const q = document.getElementById('search').value;
@@ -671,9 +689,7 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
                     let fechaStr = g.feed_fecha || '';
                     let fechaHora = fechaStr.length >= 16 ? fechaStr.substring(0, 16).replace(/-/g, '/') : fechaStr;
                     
-                    let cJson = JSON.stringify(g).replace(/'/g, "\\'").replace(/"/g, '&quot;'); 
-                    
-                    return `<div onclick="openModal(${cJson})" class="p-5 bg-slate-800/80 rounded-2xl border border-slate-700/50 hover:bg-slate-700 cursor-pointer transition mb-3 group">
+                    return `<div onclick="abrirClientePorLegajo('${g.legajo}')" class="p-5 bg-slate-800/80 rounded-2xl border border-slate-700/50 hover:bg-slate-700 cursor-pointer transition mb-3 group">
                         <div class="flex justify-between items-start mb-3">
                             <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">${fechaHora}</span>
                             <span class="px-2 py-0.5 rounded text-[8px] font-black uppercase ${badge}">${estadoStr.replace('_', ' ')}</span>

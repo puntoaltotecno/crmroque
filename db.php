@@ -27,6 +27,10 @@ try {
     $pdo = new PDO("mysql:host=$db_host;dbname=$db_name;charset=utf8mb4", $db_user, $db_pass);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+    
+    // Forzar zona horaria de Argentina en PHP y MySQL
+    date_default_timezone_set('America/Argentina/Buenos_Aires');
+    $pdo->exec("SET time_zone = '-03:00'");
 } catch (PDOException $e) {
     // Si falla, guardamos el error para que el dashboard lo capture
     $_SESSION['db_error'] = $e->getMessage();
