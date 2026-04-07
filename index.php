@@ -94,6 +94,12 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
             </div>
             
             <div class="flex items-center gap-6">
+                <!-- Botón de Comunicados -->
+                <?php if($can_assign): ?>
+                <button onclick="abrirModalComunicado()" class="text-2xl hover:scale-110 transition origin-center" title="Lanzar Aviso a Operadores">📣</button>
+                <div class="w-px h-6 bg-slate-200 hidden md:block"></div>
+                <?php endif; ?>
+
                 <div class="relative cursor-pointer flex items-center justify-center w-10 h-10 bg-slate-100 rounded-xl hover:bg-slate-200 transition" onclick="toggleNotificaciones(event)">
                     <span class="text-lg">🔔</span>
                     <span id="noti-badge" class="hidden absolute -top-1 -right-1 bg-rose-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full shadow-sm">0</span>
@@ -124,11 +130,8 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
             <?php if($rol_usuario !== 'operador'): ?>
             <div class="bg-white p-8 rounded-[2.5rem] border shadow-sm"><p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Total en Calle</p><h4 id="stat-deuda" class="text-3xl font-black text-slate-800">$0</h4></div>
             <?php endif; ?>
-            
             <div class="bg-white p-8 rounded-[2.5rem] border shadow-sm"><p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Promesas (Activas)</p><h4 id="stat-promesas" class="text-3xl font-black text-blue-600">0</h4></div>
-            
             <div class="bg-white p-8 rounded-[2.5rem] border-l-[10px] border-l-rose-500 shadow-sm"><p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 text-rose-500">Clientes (Lista Actual)</p><h4 id="stat-filtrados" class="text-3xl font-black text-rose-600">0</h4></div>
-            
             <?php if($rol_usuario !== 'operador'): ?>
             <div class="bg-white p-8 rounded-[2.5rem] border-l-[10px] border-l-blue-500 shadow-sm"><p class="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-2">Total clientes BD</p><h4 id="stat-total" class="text-3xl font-black text-slate-800">0</h4></div>
             <?php endif; ?>
@@ -161,30 +164,60 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
                 </div>
             </div>
 
-            <h3 class="text-xl font-black text-slate-800 uppercase italic tracking-tighter mb-4 mt-8">Estado de la Cartera</h3>
+            <h3 class="text-xl font-black text-slate-800 uppercase italic tracking-tighter mb-4 mt-8">Estado de la Cartera (Clic para filtrar)</h3>
             <div id="dash-estados" class="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-3 mb-8">
                 <p class="col-span-full text-center text-xs font-bold text-slate-400 py-4 uppercase tracking-widest">Cargando estados...</p>
             </div>
 
-            <div class="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden p-8 mt-8">
-                <div class="mb-6">
-                    <h3 class="text-xl font-black text-slate-800 uppercase italic tracking-tighter">Rendimiento por Operador</h3>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
+                <div class="lg:col-span-2 space-y-6">
+                    <div class="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden p-8">
+                        <h3 class="text-lg font-black text-slate-800 uppercase italic tracking-tighter mb-6">Métricas por Sucursal</h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead class="bg-slate-50 border-b text-slate-400 font-black uppercase text-[10px] tracking-widest">
+                                    <tr>
+                                        <th class="px-6 py-4 text-left">Sucursal</th>
+                                        <th class="px-6 py-4 text-center">Total Clientes</th>
+                                        <th class="px-6 py-4 text-right">En Calle (Deuda Activa)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="listaSucursales" class="divide-y divide-slate-100">
+                                    <tr><td colspan="3" class="text-center py-6 text-slate-400 font-bold text-xs uppercase tracking-widest">Cargando...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden p-8">
+                        <h3 class="text-lg font-black text-slate-800 uppercase italic tracking-tighter mb-6">Rendimiento por Operador</h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead class="bg-slate-50 border-b text-slate-400 font-black uppercase text-[10px] tracking-widest">
+                                    <tr>
+                                        <th class="px-6 py-5 text-left">Operador</th>
+                                        <th class="px-6 py-5 text-center">Asignados</th>
+                                        <th class="px-6 py-5 text-center">Gestionados</th>
+                                        <th class="px-6 py-5 text-center">Promesas Logradas</th>
+                                        <th class="px-6 py-5 text-center">Efectividad</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="listaDashboard" class="divide-y divide-slate-100">
+                                    <tr><td colspan="5" class="text-center py-10 text-slate-400 font-bold text-xs uppercase tracking-widest">Cargando...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm">
-                        <thead class="bg-slate-50 border-b text-slate-400 font-black uppercase text-[10px] tracking-widest">
-                            <tr>
-                                <th class="px-6 py-5 text-left">Operador</th>
-                                <th class="px-6 py-5 text-center">Asignados</th>
-                                <th class="px-6 py-5 text-center">Gestionados</th>
-                                <th class="px-6 py-5 text-center">Promesas Logradas</th>
-                                <th class="px-6 py-5 text-center">Efectividad</th>
-                            </tr>
-                        </thead>
-                        <tbody id="listaDashboard" class="divide-y divide-slate-100">
-                            <tr><td colspan="5" class="text-center py-10 text-slate-400 font-bold text-xs uppercase tracking-widest">Cargando métricas...</td></tr>
-                        </tbody>
-                    </table>
+
+                <div class="bg-slate-900 rounded-[2.5rem] shadow-xl p-8 flex flex-col max-h-[850px]">
+                    <div class="flex items-center gap-3 mb-6 shrink-0">
+                        <div class="w-3 h-3 bg-red-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.8)]"></div>
+                        <h3 class="text-lg font-black text-white uppercase italic tracking-tighter">Últimas 10 Gestiones</h3>
+                    </div>
+                    <div id="feedGestiones" class="flex-1 overflow-y-auto custom-scroll pr-2 space-y-3">
+                        <p class="text-center text-slate-500 text-xs font-bold mt-10 uppercase tracking-widest">Cargando feed en vivo...</p>
+                    </div>
                 </div>
             </div>
         </section>
@@ -268,17 +301,51 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
         </section>
     </main>
 
+    <!-- BANNER FLOTANTE DE COMUNICADOS -->
+    <div id="banner-comunicado" class="hidden fixed bottom-6 right-6 max-w-sm w-full bg-slate-900 border border-slate-700 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)] rounded-3xl p-6 z-[100] transform transition-all duration-500 translate-y-10 opacity-0">
+        <div class="flex justify-between items-start mb-4">
+            <div class="flex items-center gap-3">
+                <span class="text-2xl animate-bounce">📣</span>
+                <div>
+                    <h3 class="text-white font-black uppercase tracking-widest text-xs">Nuevo Aviso</h3>
+                    <p id="lbl-destinatario-banner" class="text-[9px] text-blue-400 uppercase tracking-widest font-black"></p>
+                </div>
+            </div>
+            <button onclick="cerrarComunicado()" class="text-slate-400 hover:text-white transition text-lg bg-slate-800 w-8 h-8 rounded-full flex items-center justify-center">✕</button>
+        </div>
+        <p id="txt-comunicado" class="text-slate-300 text-sm font-semibold leading-relaxed whitespace-pre-wrap"></p>
+        <?php if($can_assign): ?>
+        <div class="mt-5 pt-4 border-t border-slate-700/50 text-right">
+            <button onclick="eliminarComunicado()" class="text-[10px] font-black text-rose-400 hover:text-rose-300 uppercase tracking-widest transition">🗑️ Quitar aviso</button>
+        </div>
+        <?php endif; ?>
+    </div>
+
     <?php if($can_assign): ?>
+    <!-- MODAL PARA REDACTAR COMUNICADOS -->
+    <div id="modalComunicado" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-white p-10 rounded-[2.5rem] w-full max-w-md shadow-2xl relative">
+            <button onclick="document.getElementById('modalComunicado').classList.replace('flex', 'hidden')" class="absolute top-6 right-6 text-slate-400 hover:text-slate-800 text-xl font-bold">✕</button>
+            <h3 class="text-xl font-black text-slate-800 uppercase italic tracking-tighter mb-2 flex items-center gap-2">📣 Lanzar Aviso</h3>
+            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">Aparecerá en la pantalla del usuario seleccionado.</p>
+            <form id="formComunicado" onsubmit="guardarComunicado(event)" class="space-y-4">
+                <select name="usuario_destino_id" id="comunicadoDestino" class="w-full px-5 py-4 bg-slate-50 border rounded-2xl outline-none font-black uppercase text-xs text-slate-700 cursor-pointer">
+                    <option value="0">🌎 PARA TODOS LOS USUARIOS</option>
+                </select>
+                <textarea name="mensaje" rows="4" placeholder="Escribe tu mensaje aquí..." required class="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium outline-none resize-none custom-scroll focus:border-blue-500 focus:bg-white transition-colors"></textarea>
+                <button type="submit" class="w-full bg-blue-600 text-white py-4 rounded-2xl font-black uppercase text-xs mt-2 hover:bg-blue-700 transition shadow-xl">Publicar Aviso</button>
+            </form>
+        </div>
+    </div>
+    
     <div id="bulk-actions" class="hidden fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-slate-900 p-4 rounded-3xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] flex items-center gap-4 z-50 border border-slate-700 w-[95%] max-w-4xl overflow-x-auto custom-scroll">
         <span id="bulk-count" class="text-blue-400 font-black text-[11px] px-4 whitespace-nowrap uppercase tracking-widest">0 seleccionados</span>
-        
         <div class="w-px h-8 bg-slate-700 shrink-0"></div>
         <select id="masivo_operador" class="bg-slate-800 text-slate-300 border border-slate-700 text-xs px-4 py-2 rounded-xl outline-none font-bold">
             <option value="">👤 Asignar a...</option>
             <option value="0">Desasignar a todos</option>
         </select>
         <button onclick="ejecutarMasivo('asignar_operador')" class="bg-blue-600 text-white px-5 py-2.5 rounded-xl text-[10px] font-black uppercase hover:bg-blue-500 transition shrink-0">Aplicar</button>
-
         <div class="w-px h-8 bg-slate-700 shrink-0"></div>
         <select id="masivo_estado" class="bg-slate-800 text-slate-300 border border-slate-700 text-xs px-4 py-2 rounded-xl outline-none font-bold">
             <option value="">Cambiar Estado...</option>
@@ -292,7 +359,6 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
             <option value="otro">Otro</option>
         </select>
         <button onclick="ejecutarMasivo('cambiar_estado')" class="bg-blue-600 text-white px-5 py-2.5 rounded-xl text-[10px] font-black uppercase hover:bg-blue-500 transition shrink-0">Aplicar</button>
-
         <?php if($rol_usuario === 'admin'): ?>
         <div class="w-px h-8 bg-slate-700 shrink-0"></div>
         <button onclick="ejecutarMasivo('eliminar')" class="bg-rose-500/10 text-rose-500 border border-rose-500/20 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase hover:bg-rose-500 hover:text-white transition shrink-0">🗑️ Eliminar</button>
@@ -334,9 +400,17 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
                 </div>
 
                 <form id="gForm" class="space-y-4 pt-4 border-t flex-1 flex flex-col">
+                    <input type="hidden" name="action" id="gAction" value="insert">
+                    <input type="hidden" name="id" id="gId" value="">
                     <input type="hidden" name="legajo" id="mLegajoRaw">
+                    
+                    <div class="flex items-center gap-2 mb-2 hidden" id="editWarning">
+                        <span class="bg-amber-100 text-amber-700 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-lg">Estás editando una gestión existente</span>
+                        <button type="button" onclick="cancelarEdicion()" class="text-rose-500 text-[10px] font-black uppercase hover:underline">Cancelar</button>
+                    </div>
+
                     <div class="grid grid-cols-3 gap-4">
-                        <select name="estado" id="mEst" class="p-4 bg-slate-50 border rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500">
+                        <select name="estado" id="mEst" class="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500 transition-colors">
                             <option value="promesa">Promesa de Pago</option>
                             <option value="al_dia" <?= $rol_usuario === 'operador' ? 'disabled class="hidden"' : '' ?>>Al Día (Sin deuda)</option>
                             <option value="no_responde">No Responde</option>
@@ -346,11 +420,11 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
                             <option value="carta">Carta</option>
                             <option value="otro">Otro</option>
                         </select>
-                        <input type="number" step="0.01" name="monto_promesa" id="mMon" placeholder="Monto Acuerdo" class="p-4 bg-slate-50 border rounded-2xl text-sm font-bold outline-none">
-                        <input type="date" name="fecha_promesa" id="mFec" class="p-4 bg-slate-50 border rounded-2xl text-sm font-bold outline-none">
+                        <input type="number" step="0.01" name="monto_promesa" id="mMon" placeholder="Monto Acuerdo" class="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none">
+                        <input type="date" name="fecha_promesa" id="mFec" class="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none transition-colors">
                     </div>
-                    <textarea name="observacion" rows="3" required class="w-full p-5 bg-slate-50 border rounded-2xl text-sm font-medium outline-none resize-none flex-1 custom-scroll" placeholder="Resumen de la conversación..."></textarea>
-                    <button type="submit" class="w-full bg-blue-600 text-white py-5 rounded-3xl font-black uppercase text-xs shadow-xl hover:bg-blue-700 transition">Guardar Gestión</button>
+                    <textarea name="observacion" rows="3" required class="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium outline-none resize-none flex-1 custom-scroll" placeholder="Resumen de la conversación..."></textarea>
+                    <button type="submit" id="btnSubmitGestion" class="w-full bg-blue-600 text-white py-5 rounded-3xl font-black uppercase text-xs shadow-xl hover:bg-blue-700 transition">Guardar Gestión</button>
                 </form>
             </div>
             <div class="w-full md:w-2/5 bg-slate-50 p-10 flex flex-col">
@@ -410,7 +484,80 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
     const api_usuarios = 'api_usuarios.php';
     const api_dashboard = 'api_dashboard.php';
 
-    // ── GESTIÓN DE NOTIFICACIONES ──
+    // ── COMUNICADOS ──
+    async function checkComunicado() {
+        try {
+            const res = await fetch('api_comunicados.php?action=get');
+            const d = await res.json();
+            if (d.success && d.data) {
+                const lastSeen = localStorage.getItem('comunicado_visto');
+                if (lastSeen != d.data.id) {
+                    document.getElementById('txt-comunicado').innerText = d.data.mensaje;
+                    const lblDestino = document.getElementById('lbl-destinatario-banner');
+                    
+                    if (!d.data.usuario_destino_id || d.data.usuario_destino_id == 0) {
+                        lblDestino.innerText = "🌎 PARA TODOS";
+                        lblDestino.classList.replace('text-rose-400', 'text-blue-400');
+                    } else {
+                        lblDestino.innerText = "🔒 MENSAJE PRIVADO PARA TI";
+                        lblDestino.classList.replace('text-blue-400', 'text-rose-400');
+                    }
+
+                    const banner = document.getElementById('banner-comunicado');
+                    banner.dataset.id = d.data.id;
+                    banner.classList.remove('hidden');
+                    setTimeout(() => { banner.classList.remove('translate-y-10', 'opacity-0'); }, 100);
+                }
+            }
+        } catch(e) { console.log('Error silenciado de comunicados'); }
+    }
+
+    function cerrarComunicado() {
+        const banner = document.getElementById('banner-comunicado');
+        banner.classList.add('translate-y-10', 'opacity-0');
+        localStorage.setItem('comunicado_visto', banner.dataset.id);
+        setTimeout(() => banner.classList.add('hidden'), 500);
+    }
+
+    <?php if($can_assign): ?>
+    function abrirModalComunicado() { 
+        document.getElementById('formComunicado').reset(); 
+        const selectDestino = document.getElementById('comunicadoDestino');
+        selectDestino.innerHTML = '<option value="0">🌎 PARA TODOS LOS USUARIOS</option>' + 
+            operadoresList.map(u => `<option value="${u.id}">👤 Para: ${u.nombre} (${u.rol})</option>`).join('');
+        document.getElementById('modalComunicado').classList.replace('hidden', 'flex'); 
+    }
+    
+    async function guardarComunicado(e) {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        fd.append('action', 'save');
+        const res = await fetch('api_comunicados.php', { method: 'POST', body: fd });
+        const d = await res.json();
+        if (d.success) {
+            document.getElementById('modalComunicado').classList.replace('flex', 'hidden');
+            localStorage.removeItem('comunicado_visto');
+            checkComunicado();
+        } else { alert("Error al guardar aviso: " + d.message); }
+    }
+
+    async function eliminarComunicado() {
+        if (!confirm('¿Estás seguro de quitar este aviso?')) return;
+        const fd = new FormData();
+        fd.append('action', 'delete');
+        await fetch('api_comunicados.php', { method: 'POST', body: fd });
+        cerrarComunicado();
+    }
+    <?php endif; ?>
+
+    function aplicarFiltroDashboard(estadoId) {
+        document.getElementById('filter-estado').value = estadoId;
+        document.getElementById('search').value = '';
+        if(document.getElementById('filter-operador')) document.getElementById('filter-operador').value = '0';
+        switchTab('clientes');
+        load(); stats();
+    }
+
     function toggleNotificaciones(e) { e.stopPropagation(); document.getElementById('noti-dropdown').classList.toggle('hidden'); }
     function cerrarDropdownNoti() { const d = document.getElementById('noti-dropdown'); if (d && !d.classList.contains('hidden')) d.classList.add('hidden'); }
 
@@ -418,23 +565,18 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
         try {
             const res = await fetch(api_clientes + 'notificaciones');
             const d = await res.json();
-            
             const badge = document.getElementById('noti-badge');
             const countText = document.getElementById('noti-count-text');
             const list = document.getElementById('noti-list');
-            
             notificacionesData = d.data;
-            
             if (d.count > 0) {
                 badge.innerText = d.count;
                 badge.classList.remove('hidden');
                 countText.innerText = d.count + (d.count === 1 ? ' ALERTA' : ' ALERTAS');
-                
                 list.innerHTML = d.data.map((c, i) => {
                     let f = c.fecha_promesa.split('-').reverse().join('/');
                     let estado = c.estado_actual.replace('_', ' ').toUpperCase();
                     let badgeClass = `badge-${c.estado_actual}`;
-                    
                     return `<div class="p-4 hover:bg-slate-50 cursor-pointer transition flex flex-col gap-2" onclick='abrirNotificacion(event, ${i})'>
                         <div class="flex justify-between items-start">
                             <p class="font-black text-xs text-slate-800 uppercase truncate pr-2">${c.razon_social}</p>
@@ -451,7 +593,7 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
                 countText.innerText = '0 ALERTAS';
                 list.innerHTML = '<p class="text-center py-8 text-[10px] font-black uppercase text-slate-300 tracking-widest">Agenda al día 🎉</p>';
             }
-        } catch(e) { console.error("Error al cargar notificaciones", e); }
+        } catch(e) {}
     };
 
     function abrirNotificacion(e, index) { e.stopPropagation(); cerrarDropdownNoti(); openModal(notificacionesData[index]); }
@@ -468,6 +610,9 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
         if (!canAssign) return;
         try {
             document.getElementById('listaDashboard').innerHTML = `<tr><td colspan="5" class="text-center py-10 text-slate-400 font-bold text-xs uppercase tracking-widest">Cargando métricas...</td></tr>`;
+            document.getElementById('listaSucursales').innerHTML = `<tr><td colspan="3" class="text-center py-6 text-slate-400 font-bold text-xs uppercase tracking-widest">Cargando...</td></tr>`;
+            document.getElementById('feedGestiones').innerHTML = `<p class="text-center text-slate-500 text-xs font-bold mt-10 uppercase tracking-widest">Cargando feed en vivo...</p>`;
+            
             const res = await fetch(api_dashboard);
             const data = await res.json();
             
@@ -482,34 +627,79 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
                 if (document.getElementById('dash-estados') && data.estados) {
                     document.getElementById('dash-estados').innerHTML = cfgEstados.map(est => {
                         const count = data.estados[est.id] || 0;
-                        return `<div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col items-center justify-center text-center hover:shadow-md transition">
+                        return `<div onclick="aplicarFiltroDashboard('${est.id}')" class="cursor-pointer bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col items-center justify-center text-center hover:shadow-lg hover:border-blue-400 transition transform hover:-translate-y-1">
                             <h4 class="text-3xl font-black text-slate-800 mb-3">${count}</h4>
                             <span class="px-3 py-1.5 rounded-full text-[9px] font-black uppercase ${est.class} w-full truncate border border-transparent">${est.label}</span>
                         </div>`;
                     }).join('');
                 }
 
-                document.getElementById('listaDashboard').innerHTML = data.data.map(op => {
-                    const asignados = parseInt(op.total_asignados) || 0;
-                    const gestionados = parseInt(op.clientes_gestionados) || 0;
-                    const promesas = parseInt(op.promesas_logradas) || 0;
-                    
-                    const efectividad = gestionados > 0 ? Math.round((promesas / gestionados) * 100) : 0;
-                    const colorEfectividad = efectividad >= 30 ? 'text-emerald-500' : (efectividad >= 15 ? 'text-amber-500' : 'text-rose-500');
-                    
-                    return `<tr class="hover:bg-blue-50/50 transition">
-                        <td class="px-6 py-4 font-black text-slate-800">${op.nombre}</td>
-                        <td class="px-6 py-4 text-center font-bold text-slate-600">${asignados}</td>
-                        <td class="px-6 py-4 text-center font-bold text-blue-600">${gestionados}</td>
-                        <td class="px-6 py-4 text-center font-bold text-emerald-600">${promesas}</td>
-                        <td class="px-6 py-4 text-center font-black ${colorEfectividad}">${efectividad}%</td>
-                    </tr>`;
-                }).join('') || `<tr><td colspan="5" class="text-center py-10 text-slate-400 font-bold text-xs uppercase tracking-widest">No hay datos de rendimiento</td></tr>`;
-            }
-        } catch (e) { document.getElementById('listaDashboard').innerHTML = `<tr><td colspan="5" class="text-center py-10 text-rose-400 font-bold text-xs uppercase tracking-widest">Error al cargar datos</td></tr>`; }
-    };
+                if (document.getElementById('listaSucursales') && data.sucursales) {
+                    document.getElementById('listaSucursales').innerHTML = data.sucursales.map(s => {
+                        let monto = `$${parseFloat(s.deuda_en_calle || 0).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                        return `<tr class="hover:bg-blue-50/50 transition border-b border-slate-50">
+                            <td class="px-6 py-4 font-black text-slate-800 uppercase text-[11px] tracking-widest">${s.sucursal_nombre}</td>
+                            <td class="px-6 py-4 text-center font-bold text-slate-500">${s.total_clientes}</td>
+                            <td class="px-6 py-4 text-right font-black text-rose-600 bg-rose-50/30">${monto}</td>
+                        </tr>`;
+                    }).join('') || `<tr><td colspan="3" class="text-center py-6 text-slate-400 font-bold text-xs uppercase tracking-widest">Sin datos</td></tr>`;
+                }
 
-    const load = async () => {
+                if (document.getElementById('listaDashboard') && data.data) {
+                    document.getElementById('listaDashboard').innerHTML = data.data.map(op => {
+                        const asignados = parseInt(op.total_asignados) || 0;
+                        const gestionados = parseInt(op.clientes_gestionados) || 0;
+                        const promesas = parseInt(op.promesas_logradas) || 0;
+                        const efectividad = gestionados > 0 ? Math.round((promesas / gestionados) * 100) : 0;
+                        const colorEfectividad = efectividad >= 30 ? 'text-emerald-500' : (efectividad >= 15 ? 'text-amber-500' : 'text-rose-500');
+                        
+                        return `<tr class="hover:bg-blue-50/50 transition border-b border-slate-50">
+                            <td class="px-6 py-4 font-black text-slate-800 text-xs">${op.nombre || 'Desconocido'}</td>
+                            <td class="px-6 py-4 text-center font-bold text-slate-600">${asignados}</td>
+                            <td class="px-6 py-4 text-center font-bold text-blue-600">${gestionados}</td>
+                            <td class="px-6 py-4 text-center font-bold text-emerald-600">${promesas}</td>
+                            <td class="px-6 py-4 text-center font-black ${colorEfectividad}">${efectividad}%</td>
+                        </tr>`;
+                    }).join('') || `<tr><td colspan="5" class="text-center py-10 text-slate-400 font-bold text-xs uppercase tracking-widest">No hay datos</td></tr>`;
+                }
+
+                if (document.getElementById('feedGestiones') && data.ultimas_gestiones) {
+                document.getElementById('feedGestiones').innerHTML = data.ultimas_gestiones.map(g => {
+                    // Protecciones para evitar fallos si el dato viene nulo
+                    let estadoStr = g.feed_estado || 'sin_gestion';
+                    let badge = `badge-${estadoStr}`;
+                    let fechaStr = g.feed_fecha || '';
+                    let fechaHora = fechaStr.length >= 16 ? fechaStr.substring(0, 16).replace(/-/g, '/') : fechaStr;
+                    
+                    // Protección ESTRICTA para inyección en el onclick
+                    let cJson = JSON.stringify(g).replace(/'/g, "\\'").replace(/"/g, '&quot;'); 
+                    
+                    return `<div onclick="openModal(${cJson})" class="p-5 bg-slate-800/80 rounded-2xl border border-slate-700/50 hover:bg-slate-700 cursor-pointer transition mb-3 group">
+                        <div class="flex justify-between items-start mb-3">
+                            <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">${fechaHora}</span>
+                            <span class="px-2 py-0.5 rounded text-[8px] font-black uppercase ${badge}">${estadoStr.replace('_', ' ')}</span>
+                        </div>
+                        <p class="font-bold text-[13px] text-white mb-2 truncate group-hover:text-blue-400 transition-colors">${g.razon_social || 'Desconocido'}</p>
+                        <p class="text-[11px] text-slate-400 line-clamp-2 leading-relaxed font-medium italic">"${g.feed_obs || 'Sin observaciones'}"</p>
+                        <div class="mt-3 pt-3 border-t border-slate-700/50 flex justify-between items-center">
+                            <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest">LEG: ${g.legajo}</span>
+                            <span class="text-[9px] text-blue-400 font-bold uppercase">👤 ${(g.feed_operador || 'Sistema').split(' ')[0]}</span>
+                        </div>
+                    </div>`;
+                }).join('') || `<p class="text-center text-slate-500 text-xs font-bold mt-10 uppercase tracking-widest">No hay gestiones</p>`;
+            }
+        } else {
+             throw new Error(data.message || "El backend devolvió un error desconocido");
+        }
+    } catch (e) { 
+        console.error(e);
+        let errMsg = e.message || "Error de conexión";
+        if(document.getElementById('listaDashboard')) document.getElementById('listaDashboard').innerHTML = `<tr><td colspan="5" class="text-center py-10 text-rose-400 font-bold text-xs uppercase tracking-widest">⚠️ ERROR AL CARGAR DATOS<br><span class="text-[9px] text-slate-500 lowercase normal-case mt-2 block">${errMsg}</span></td></tr>`; 
+        if(document.getElementById('feedGestiones')) document.getElementById('feedGestiones').innerHTML = `<div class="p-4 bg-rose-50 border border-rose-100 rounded-2xl mt-10"><p class="text-center text-rose-500 text-xs font-bold uppercase tracking-widest">⚠️ Error en el Feed</p><p class="text-center text-slate-600 text-[10px] mt-2">${errMsg}</p></div>`;
+    }
+};
+
+const load = async () => {
         const q = document.getElementById('search').value;
         const est = document.getElementById('filter-estado').value;
         const op = document.getElementById('filter-operador')?.value || 0;
@@ -535,14 +725,16 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
 
                 let trMonto = `$${parseFloat(c.total_vencido).toLocaleString('es-AR')}`;
 
-                return `<tr class="hover:bg-blue-50/50 cursor-pointer transition border-l-[6px] border-l-${c.semaforo === 'blanco' ? 'transparent' : (c.semaforo === 'rojo' ? 'rose-500' : (c.semaforo === 'amarillo' ? 'amber-400' : 'emerald-500'))}" ondblclick='openModal(${JSON.stringify(c).replace(/'/g, "\\'")})'>
+                let cJson = JSON.stringify(c).replace(/'/g, "\\'").replace(/"/g, '&quot;'); 
+
+                return `<tr class="hover:bg-blue-50/50 cursor-pointer transition border-l-[6px] border-l-${c.semaforo === 'blanco' ? 'transparent' : (c.semaforo === 'rojo' ? 'rose-500' : (c.semaforo === 'amarillo' ? 'amber-400' : 'emerald-500'))}" ondblclick="openModal(${cJson})">
                     ${checkHTML}
                     <td class="${paddingLegajo} py-5"><p class="font-black text-slate-800 text-sm">${c.legajo}</p><p class="text-[9px] font-bold text-slate-400 uppercase">${c.nro_documento}</p></td>
                     <td class="px-8 py-5"><p class="font-black uppercase text-slate-700 text-sm truncate max-w-[200px]">${c.razon_social}</p><p class="text-[10px] font-bold text-blue-500 uppercase italic">${c.sucursal || 'Central'}</p></td>
                     <td class="px-8 py-5 text-center"><p class="font-bold text-slate-800 text-sm">${c.c_cuotas} Ctas</p>${c.dias_atraso > 0 ? `<p class="text-[9px] font-black text-rose-500 uppercase">${c.dias_atraso} días</p>` : ''}</td>
                     <td class="px-8 py-5 text-right"><p class="font-black text-slate-900 text-base">${trMonto}</p></td>
                     <td class="px-8 py-5 text-center"><span class="px-4 py-1.5 rounded-full text-[9px] font-black uppercase ${badgeClass}">${labelEstado}</span><div class="flex justify-center">${opBadge}</div></td>
-                    <td class="px-8 py-5 text-center"><button onclick='event.stopPropagation(); openModal(${JSON.stringify(c).replace(/'/g, "\\'")})' class="bg-blue-600 text-white px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase hover:bg-blue-700 transition shadow-sm">Gestionar</button></td>
+                    <td class="px-8 py-5 text-center"><button onclick="event.stopPropagation(); openModal(${cJson})" class="bg-blue-600 text-white px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase hover:bg-blue-700 transition shadow-sm">Gestionar</button></td>
                 </tr>`;
             }).join('');
             updateBulkUI();
@@ -556,7 +748,8 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
             let roleColor = u.rol === 'admin' ? 'text-rose-500' : (u.rol === 'colaborador' ? 'text-blue-500' : 'text-orange-500');
             let roleLabel = u.rol === 'admin' ? 'Administrador' : (u.rol === 'colaborador' ? 'Colaborador' : 'Operador');
             
-            let btns = isAdmin ? `<div class="absolute top-6 right-6 flex gap-2"><button onclick='editarUsuario(${JSON.stringify(u)})' class="p-2 bg-blue-50 text-blue-600 rounded-xl transition hover:bg-blue-600 hover:text-white">✏️</button>${u.id != currentUserId ? `<button onclick='eliminarUsuario(${u.id}, "${u.nombre}")' class="p-2 bg-rose-50 text-rose-600 rounded-xl transition hover:bg-rose-600 hover:text-white">🗑️</button>` : ''}</div>` : '';
+            let uJson = JSON.stringify(u).replace(/'/g, "\\'").replace(/"/g, '&quot;'); 
+            let btns = isAdmin ? `<div class="absolute top-6 right-6 flex gap-2"><button onclick="editarUsuario(${uJson})" class="p-2 bg-blue-50 text-blue-600 rounded-xl transition hover:bg-blue-600 hover:text-white">✏️</button>${u.id != currentUserId ? `<button onclick='eliminarUsuario(${u.id}, "${u.nombre}")' class="p-2 bg-rose-50 text-rose-600 rounded-xl transition hover:bg-rose-600 hover:text-white">🗑️</button>` : ''}</div>` : '';
             
             return `
             <div class="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col justify-between group relative">
@@ -646,6 +839,7 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
         load(); 
         stats(); 
         loadNotificaciones();
+        checkComunicado();
     };
 
     let searchTimeout;
@@ -669,7 +863,48 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
         } catch(e) { console.error(e); }
     };
 
+    async function cargarHistorial(legajo) {
+        const chk = document.getElementById('chkVerOcultas');
+        const verOcultas = (chk && chk.checked) ? 1 : 0;
+        
+        const hRes = await fetch(api_historial + encodeURIComponent(legajo) + '&ver_ocultas=' + verOcultas);
+        const hData = await hRes.json();
+        
+        let maxId = hData.length > 0 ? Math.max(...hData.map(h => parseInt(h.id))) : 0;
+        
+        document.getElementById('mHisList').innerHTML = hData.map(h => {
+            let fH = h.fecha.split(' ')[0].split('-').reverse().join('/') + ' ' + h.fecha.split(' ')[1].substring(0,5);
+            let badgeH = `badge-${h.estado}`;
+            let details = h.estado === 'promesa' ? `<div class="mt-2 flex gap-4 text-[9px] font-black uppercase text-blue-500 bg-blue-50 p-2 rounded-xl"><span>💰 $${parseFloat(h.monto_promesa).toLocaleString('es-AR')}</span><span>📅 ${h.fecha_promesa?.split('-').reverse().join('/')}</span></div>` : '';
+            
+            let btnEdit = '';
+            let btnDel = '';
+            let intentos = parseInt(h.intentos || 0);
+            let isOculta = h.oculta == 1;
+            
+            let hJson = JSON.stringify(h).replace(/'/g, "\\'").replace(/"/g, '&quot;'); 
+
+            if (canAssign) {
+                btnEdit = `<button type="button" onclick="prepararEdicion(${hJson})" class="text-blue-500 hover:text-blue-700 transition">✏️ Editar</button>`;
+                btnDel = `<button type="button" onclick='eliminarGestion(${h.id}, "${legajo}")' class="text-rose-500 hover:text-rose-700 transition">🗑️ Borrar</button>`;
+            } else if (isOperador && h.usuario_id == currentUserId && h.id == maxId && intentos < 3) {
+                btnEdit = `<button type="button" onclick="prepararEdicion(${hJson})" class="text-blue-500 hover:text-blue-700 transition">✏️ Editar (${intentos}/3)</button>`;
+            }
+            
+            let actionBtns = (btnEdit || btnDel) ? `<div class="flex gap-4 text-[10px] font-black uppercase mt-3 pt-3 border-t border-slate-100">${btnEdit} ${btnDel}</div>` : '';
+            let ocultaBadge = isOculta ? `<span class="bg-rose-100 text-rose-600 px-2 py-0.5 rounded text-[8px] font-black uppercase ml-2">👁️ Oculta</span>` : '';
+
+            return `<div class="bg-white p-5 rounded-3xl shadow-sm text-xs border ${isOculta ? 'border-rose-300 opacity-75' : 'border-slate-100'} mb-4 transition hover:shadow-md">
+                <div class="flex justify-between items-center font-black text-[9px] mb-3 uppercase tracking-widest text-slate-400"><span>📅 ${fH}</span><span>Op: ${h.operador}</span></div>
+                <div class="mb-3"><span class="px-3 py-1 rounded-full text-[8px] font-black uppercase ${badgeH}">${h.estado.replace('_', ' ')}</span> ${ocultaBadge}</div>
+                <p class="text-slate-600 font-semibold leading-relaxed">${h.observacion}</p>${details}
+                ${actionBtns}
+            </div>`;
+        }).join('') || '<p class="text-center text-slate-300 py-10 font-black tracking-widest uppercase text-[10px]">Sin gestiones previas</p>';
+    }
+
     async function openModal(c) {
+        cancelarEdicion();
         document.getElementById('mHis').innerHTML = '<p class="text-center py-10 opacity-30 text-[10px] font-black uppercase tracking-widest">Cargando...</p>';
         document.getElementById('mLegajoRaw').value = c.legajo; 
         document.getElementById('mRazon').innerText = c.razon_social; 
@@ -677,7 +912,6 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
         document.getElementById('mSucursal').innerText = c.sucursal || 'Central';
         if (canAssign) document.getElementById('mAsignacion').value = c.operador_id || '';
         
-        // --- NUEVA LÓGICA DE ALERTA VISUAL (CLIENTE DE OTRO OP) ---
         const warnBadge = document.getElementById('mWarningOtroOp');
         if(isOperador && c.operador_id != currentUserId) {
             warnBadge.classList.remove('hidden');
@@ -685,7 +919,6 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
         } else {
             warnBadge.classList.add('hidden');
         }
-        // ----------------------------------------------------------
 
         document.getElementById('mTotal').innerText = `$${parseFloat(c.total_vencido).toLocaleString('es-AR')}`;
         document.getElementById('mDias').innerText = c.dias_atraso || '0'; 
@@ -699,6 +932,8 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
         document.getElementById('mMon').value = c.monto_promesa || ''; 
         document.getElementById('mFec').value = c.fecha_promesa || '';
         
+        document.getElementById('mEst').dispatchEvent(new Event('change'));
+
         const formElements = document.querySelectorAll('#gForm input, #gForm select, #gForm textarea');
         const btnGuardar = document.querySelector('#gForm button[type="submit"]');
         
@@ -716,37 +951,97 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
             btnGuardar.classList.add('hover:bg-blue-700');
         }
 
-        const hRes = await fetch(api_historial + encodeURIComponent(c.legajo)), hData = await hRes.json();
-        document.getElementById('mHis').innerHTML = hData.map(h => {
-            let fH = h.fecha.split(' ')[0].split('-').reverse().join('/') + ' ' + h.fecha.split(' ')[1].substring(0,5);
-            let badgeH = `badge-${h.estado}`;
-            let details = h.estado === 'promesa' ? `<div class="mt-2 flex gap-4 text-[9px] font-black uppercase text-blue-500 bg-blue-50 p-2 rounded-xl"><span>💰 $${parseFloat(h.monto_promesa).toLocaleString('es-AR')}</span><span>📅 ${h.fecha_promesa?.split('-').reverse().join('/')}</span></div>` : '';
-            return `<div class="bg-white p-5 rounded-3xl shadow-sm text-xs border border-slate-100 mb-4 transition hover:shadow-md">
-                <div class="flex justify-between font-black text-[9px] mb-3 uppercase tracking-widest text-slate-400"><span>📅 ${fH}</span><span>Op: ${h.operador}</span></div>
-                <div class="mb-3"><span class="px-3 py-1 rounded-full text-[8px] font-black uppercase ${badgeH}">${h.estado.replace('_', ' ')}</span></div>
-                <p class="text-slate-600 font-semibold leading-relaxed">${h.observacion}</p>${details}
-            </div>`;
-        }).join('') || '<p class="text-center text-slate-300 py-10 font-black tracking-widest uppercase text-[10px]">Sin gestiones previas</p>';
+        let verOcultasHTML = canAssign ? `<div class="mb-4 flex justify-between items-center bg-slate-100 px-4 py-3 rounded-2xl"><span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Ver gestiones ocultas</span><input type="checkbox" id="chkVerOcultas" onchange="cargarHistorial('${c.legajo}')" class="w-4 h-4 rounded text-blue-600"></div>` : '';
+        document.getElementById('mHis').innerHTML = verOcultasHTML + `<div id="mHisList"></div>`;
+        
+        await cargarHistorial(c.legajo);
 
         document.getElementById('modal').classList.replace('hidden', 'flex'); 
         setTimeout(() => document.getElementById('mContent').classList.replace('scale-95', 'scale-100'), 10);
     }
 
+    function prepararEdicion(h) {
+        document.getElementById('gAction').value = 'edit';
+        document.getElementById('gId').value = h.id;
+        document.getElementById('mEst').value = h.estado;
+        document.getElementById('mFec').value = h.fecha_promesa || '';
+        document.getElementById('mMon').value = h.monto_promesa || '';
+        document.querySelector('textarea[name="observacion"]').value = h.observacion || '';
+        
+        document.getElementById('mEst').dispatchEvent(new Event('change'));
+        
+        document.getElementById('editWarning').classList.remove('hidden');
+        const btnGuardar = document.getElementById('btnSubmitGestion');
+        btnGuardar.innerText = 'Actualizar Gestión';
+        btnGuardar.classList.replace('bg-blue-600', 'bg-amber-500');
+        btnGuardar.classList.replace('hover:bg-blue-700', 'hover:bg-amber-600');
+    }
+
+    function cancelarEdicion() {
+        document.getElementById('gAction').value = 'insert';
+        document.getElementById('gId').value = '';
+        document.querySelector('textarea[name="observacion"]').value = '';
+        document.getElementById('editWarning').classList.add('hidden');
+        
+        const btnGuardar = document.getElementById('btnSubmitGestion');
+        btnGuardar.innerText = 'Guardar Gestión';
+        btnGuardar.classList.replace('bg-amber-500', 'bg-blue-600');
+        btnGuardar.classList.replace('hover:bg-amber-600', 'hover:bg-blue-700');
+    }
+
+    async function eliminarGestion(id, legajo) {
+        if (!confirm('¿Estás seguro de ELIMINAR permanentemente esta gestión?')) return;
+        let fd = new FormData();
+        fd.append('action', 'delete');
+        fd.append('id', id);
+        await fetch(api_gestion, { method:'POST', body:fd });
+        await cargarHistorial(legajo);
+        load(); stats(); if(canAssign) loadDashboard(); loadNotificaciones();
+    }
+
+    if (document.getElementById('mEst') && document.getElementById('mFec')) {
+        document.getElementById('mEst').addEventListener('change', (e) => {
+            const fInput = document.getElementById('mFec');
+            if (e.target.value === 'promesa' || e.target.value === 'llamar') {
+                fInput.setAttribute('required', 'true');
+                fInput.classList.replace('bg-slate-50', 'bg-rose-50');
+                fInput.classList.replace('border-slate-200', 'border-rose-300');
+            } else {
+                fInput.removeAttribute('required');
+                fInput.classList.replace('bg-rose-50', 'bg-slate-50');
+                fInput.classList.replace('border-rose-300', 'border-slate-200');
+            }
+        });
+    }
+
     if(document.getElementById('gForm')){
         document.getElementById('gForm').onsubmit = async (e) => {
-            e.preventDefault(); const btn = e.target.querySelector('button'); btn.disabled = true; btn.innerText = 'Guardando...';
+            e.preventDefault(); 
+            const estadoSelec = document.getElementById('mEst').value;
+            const fechaSelec = document.getElementById('mFec').value;
+            if ((estadoSelec === 'promesa' || estadoSelec === 'llamar') && !fechaSelec) {
+                alert('⚠️ ACCIÓN REQUERIDA: Debes ingresar una fecha de seguimiento para poder guardar esta gestión.');
+                document.getElementById('mFec').focus();
+                return;
+            }
+            const btn = document.getElementById('btnSubmitGestion'); 
+            const textOrig = btn.innerText;
+            btn.disabled = true; 
+            btn.innerText = 'Guardando...';
             try {
-                const fd = new FormData(e.target), res = await fetch(api_gestion, { method: 'POST', body: fd }), d = await res.json();
+                const fd = new FormData(e.target);
+                const res = await fetch(api_gestion, { method: 'POST', body: fd });
+                const d = await res.json();
                 if (d.success) { 
-                    e.target.elements['observacion'].value = ''; 
+                    cancelarEdicion();
+                    await cargarHistorial(document.getElementById('mLegajoRaw').value);
                     load(); 
                     stats(); 
                     loadNotificaciones();
                     if(canAssign) loadDashboard(); 
-                    document.getElementById('mContent').classList.replace('scale-100', 'scale-95'); setTimeout(() => document.getElementById('modal').classList.replace('flex', 'hidden'), 300); 
-                } 
-                else alert("Error: " + d.message);
-            } catch(err) { alert("Error."); } finally { btn.disabled = false; btn.innerText = 'Guardar Gestión'; }
+                } else { alert("Error: " + d.message); }
+            } catch(err) { alert("Error de conexión al guardar."); } 
+            finally { btn.disabled = false; btn.innerText = textOrig; }
         };
     }
 

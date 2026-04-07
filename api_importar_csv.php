@@ -54,7 +54,6 @@ try {
     // Consultas preparadas
     $stmt_check = $pdo->prepare("SELECT legajo, (SELECT estado FROM gestiones_historial g WHERE g.legajo = clientes.legajo ORDER BY id DESC LIMIT 1) as estado_actual FROM clientes WHERE legajo = ?");
     
-    // SE AGREGA ultimo_pago AL INSERT
     $stmt_insert = $pdo->prepare(
         "INSERT INTO clientes (
             l_entidad_id, legajo, razon_social, nro_documento, ultimo_pago,
@@ -63,7 +62,7 @@ try {
          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
     );
 
-    // SE AGREGA ultimo_pago AL UPDATE
+    // ESTE UPDATE AHORA SE ASEGURA DE GUARDAR EL ULTIMO PAGO DEL CSV
     $stmt_update = $pdo->prepare(
         "UPDATE clientes SET 
             l_entidad_id = ?, razon_social = ?, nro_documento = ?, ultimo_pago = ?,
@@ -77,7 +76,7 @@ try {
     
     $stmt_al_dia = $pdo->prepare(
         "INSERT INTO gestiones_historial (legajo, usuario_id, estado, observaciones, fecha_gestion)
-         VALUES (?, ?, 'al_dia', 'Gestión automática: Deuda cancelada/regularizada (No figura en importación)', NOW())"
+         VALUES (?, ?, 'al_dia', 'Gestión automática: Deuda cancelada/regularizada según importación.', NOW())"
     );
 
     $stmt_reingreso = $pdo->prepare(
@@ -89,7 +88,7 @@ try {
     if ($handle === false) throw new Exception("No se pudo leer el archivo CSV.");
 
     $primera_linea = fgets($handle);
-    // Limpiamos BOM invisible que a veces Excel pone al principio del archivo
+    // Limpiamos BOM invisible
     $primera_linea = preg_replace('/\x{FEFF}/u', '', $primera_linea); 
     $delimitador = (strpos($primera_linea, ';') !== false) ? ';' : ',';
     rewind($handle);
@@ -105,14 +104,14 @@ try {
         if (empty(array_filter($d)) || count($d) < 10) continue; 
 
         $l_ent_id = (int)preg_replace('/[^0-9]/', '', $d[0] ?? '0');
-        $legajo   = trim(preg_replace('/[\x00-\x1F\x7F]/', '', $d[1] ?? '')); // Limpieza extrema del legajo
+        $legajo   = trim(preg_replace('/[\x00-\x1F\x7F]/', '', $d[1] ?? '')); 
         if (empty($legajo)) continue;
 
         $legajos_procesados[] = $legajo;
 
         $p_razon = crm_str($d[2] ?? '');
         $p_doc   = crm_str($d[3] ?? '');
-        $p_ult   = fmt_fecha($d[4] ?? null); // <-- RECUPERAMOS EL DATO DE ULTIMO PAGO
+        $p_ult   = fmt_fecha($d[4] ?? null); // <-- RECUPERAMOS EL DATO DE ULTIMO PAGO DEL CSV
         $p_cta   = (int)preg_replace('/[^0-9\-]/', '', $d[5] ?? '0');
         $p_loc   = limpiar($d[6] ?? '');
         $p_dom   = limpiar($d[7] ?? '');
@@ -122,19 +121,27 @@ try {
         $p_suc   = limpiar($d[11] ?? '');
         $p_tel   = limpiar($d[12] ?? '');
 
+        // REGLA: Si la deuda viene en 0 o menos, el cliente está Al Día según el CSV
+        $is_al_dia_csv = ($p_tot <= 0);
+
         try {
             $stmt_check->execute([$legajo]);
             $cliente_existente = $stmt_check->fetch();
 
             if ($cliente_existente) {
-                // Existe -> Actualizar
+                // Existe -> Actualizar (Esto inyecta el ultimo_pago del CSV a la Base de Datos)
                 $stmt_update->execute([
                     $l_ent_id, $p_razon, $p_doc, $p_ult, $p_cta, $p_loc, $p_dom,
                     $p_mora, $p_tot, $p_ven, $p_suc, $p_tel, $legajo
                 ]);
                 $cnt_update++;
 
-                if ($cliente_existente['estado_actual'] === 'al_dia') {
+                if ($is_al_dia_csv && $cliente_existente['estado_actual'] !== 'al_dia') {
+                    // Si el CSV dice que no debe, y no estaba Al Día, lo pasamos a Al Día
+                    $stmt_al_dia->execute([$legajo, $_SESSION['user_id']]);
+                    $cnt_al_dia++;
+                } elseif (!$is_al_dia_csv && $cliente_existente['estado_actual'] === 'al_dia') {
+                    // Si volvió a tener deuda, reingresa a mora
                     $stmt_reingreso->execute([$legajo, $_SESSION['user_id']]);
                 }
             } else {
@@ -144,13 +151,18 @@ try {
                     $p_mora, $p_tot, $p_ven, $p_suc, $p_tel
                 ]);
                 $cnt_insert++;
+
+                if ($is_al_dia_csv) {
+                    $stmt_al_dia->execute([$legajo, $_SESSION['user_id']]);
+                    $cnt_al_dia++;
+                }
             }
         } catch (Exception $ex) {
             $errores[] = "Error en legajo $legajo: " . $ex->getMessage();
         }
     }
 
-    // ── Limpiar los ausentes ──
+    // ── Limpiar los ausentes (Los que desaparecieron del CSV) ──
     $todos_los_legajos = $pdo->query("SELECT legajo, (SELECT estado FROM gestiones_historial g WHERE g.legajo = clientes.legajo ORDER BY id DESC LIMIT 1) as estado_actual FROM clientes")->fetchAll(PDO::FETCH_KEY_PAIR);
     
     foreach ($todos_los_legajos as $leg_bd => $estado_actual) {

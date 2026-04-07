@@ -1,84 +1,95 @@
 <?php
 /**
  * ARCHIVO: api_dashboard.php
- * Extrae las métricas globales, estados de cartera y rendimiento por operador.
+ * Versión robusta para Hostinger.
  */
-require_once 'db.php';
 
-// Validar sesión y rol (Solo Admin y Colaborador)
-if (!isset($_SESSION['user_id']) || ($_SESSION['user_rol'] !== 'admin' && $_SESSION['user_rol'] !== 'colaborador')) {
-    echo json_encode(['success' => false, 'message' => 'No autorizado']);
-    exit;
-}
+// 1. Limpieza absoluta: Prevenir cualquier salida previa al JSON
+ob_start();
+ini_set('display_errors', 0);
+error_reporting(0);
 
-header('Content-Type: application/json');
+header('Content-Type: application/json; charset=utf-8');
 
 try {
-    // 1. ── MÉTRICAS GLOBALES (RESUMEN GENERAL) ──
-    $sql_resumen = "SELECT 
+    require_once 'db.php';
+
+    // Si hubo error de conexión en db.php, lo reportamos aquí
+    if (!isset($pdo)) {
+        throw new Exception("Error de conexión a BD: " . ($_SESSION['db_error'] ?? 'Desconocido'));
+    }
+
+    if (!isset($_SESSION['user_id'])) {
+        throw new Exception("Sesión expirada.");
+    }
+
+    // --- Consultas ---
+    $res = $pdo->query("SELECT 
         (SELECT COUNT(*) FROM asignaciones) as total_asignados,
         (SELECT COUNT(DISTINCT legajo) FROM gestiones_historial) as total_gestionados,
         (SELECT COUNT(DISTINCT legajo) FROM gestiones_historial WHERE estado = 'promesa') as total_promesas
-    ";
-    $stmt_resumen = $pdo->query($sql_resumen);
-    $resumen = $stmt_resumen->fetch(PDO::FETCH_ASSOC);
+    ")->fetch();
 
-    // Calcular Cobertura (% de asignados que ya fueron gestionados al menos una vez)
-    $cobertura = 0;
-    if ($resumen['total_asignados'] > 0) {
-        $cobertura = round(($resumen['total_gestionados'] / $resumen['total_asignados']) * 100);
-    }
-    // Evitar que la cobertura pase del 100% por desfases lógicos
-    $resumen['cobertura'] = $cobertura > 100 ? 100 : $cobertura; 
+    $cobertura = ($res['total_asignados'] > 0) ? round(($res['total_gestionados'] / $res['total_asignados']) * 100) : 0;
 
-    // 2. ── ESTADOS DE LA CARTERA ──
-    // Obtenemos el estado actual de cada legajo (la última gestión)
-    $sql_estados = "SELECT 
-            COALESCE(u.estado, 'sin_gestion') AS estado_actual,
-            COUNT(c.legajo) AS cantidad
+    $estados_raw = $pdo->query("SELECT IFNULL(u.estado_actual, 'sin_gestion') as estado_actual, COUNT(c.id) as cantidad
         FROM clientes c
         LEFT JOIN (
-            SELECT g.legajo, g.estado
-            FROM gestiones_historial g
-            INNER JOIN (
-                SELECT legajo, MAX(id) as max_id
-                FROM gestiones_historial
-                GROUP BY legajo
-            ) max_g ON g.id = max_g.max_id
-        ) u ON c.legajo = u.legajo
-        GROUP BY estado_actual";
-        
-    $stmt_estados = $pdo->query($sql_estados);
-    $estados_raw = $stmt_estados->fetchAll(PDO::FETCH_ASSOC);
+            SELECT g.legajo, g.estado as estado_actual FROM gestiones_historial g
+            JOIN (SELECT MAX(id) as max_id FROM gestiones_historial GROUP BY legajo) max_g ON g.id = max_g.max_id
+        ) u ON c.legajo = u.legajo GROUP BY estado_actual")->fetchAll();
     
-    // Convertimos a un diccionario clave => valor para facilitar el uso en JS
     $estados = [];
-    foreach($estados_raw as $row) {
-        $estados[$row['estado_actual']] = (int)$row['cantidad'];
+    foreach($estados_raw as $r) { $estados[$r['estado_actual']] = (int)$r['cantidad']; }
+
+    $ops = $pdo->query("SELECT u.nombre, 
+        (SELECT COUNT(*) FROM asignaciones a WHERE a.usuario_id = u.id) as total_asignados,
+        (SELECT COUNT(DISTINCT h.legajo) FROM gestiones_historial h WHERE h.usuario_id = u.id) as clientes_gestionados,
+        (SELECT COUNT(DISTINCT h2.legajo) FROM gestiones_historial h2 WHERE h2.usuario_id = u.id AND h2.estado = 'promesa') as promesas_logradas
+        FROM usuarios u WHERE u.rol IN ('operador', 'colaborador') ORDER BY total_asignados DESC")->fetchAll();
+
+    $sucursales = $pdo->query("SELECT IFNULL(NULLIF(TRIM(sucursal), ''), 'Central') as sucursal_nombre, COUNT(id) as total_clientes, SUM(total_vencido) as deuda_en_calle
+        FROM clientes GROUP BY sucursal_nombre ORDER BY deuda_en_calle DESC")->fetchAll();
+
+    // Feed de gestiones (Filtro seguro para Hostinger)
+    $feed = [];
+    try {
+        $feed = $pdo->query("SELECT g.estado as feed_estado, g.observaciones as feed_obs, g.fecha_gestion as feed_fecha,
+                            u.nombre as feed_operador, c.legajo, c.razon_social
+                            FROM gestiones_historial g
+                            JOIN clientes c ON g.legajo = c.legajo
+                            LEFT JOIN usuarios u ON g.usuario_id = u.id
+                            WHERE g.oculta = 0 OR g.oculta IS NULL 
+                            ORDER BY g.id DESC LIMIT 10")->fetchAll();
+    } catch(Exception $e) {
+        $feed = $pdo->query("SELECT g.estado as feed_estado, g.observaciones as feed_obs, g.fecha_gestion as feed_fecha,
+                            u.nombre as feed_operador, c.legajo, c.razon_social
+                            FROM gestiones_historial g
+                            JOIN clientes c ON g.legajo = c.legajo
+                            LEFT JOIN usuarios u ON g.usuario_id = u.id
+                            ORDER BY g.id DESC LIMIT 10")->fetchAll();
     }
 
-    // 3. ── RENDIMIENTO POR OPERADOR ──
-    $sql_ops = "SELECT 
-                u.id, 
-                u.nombre, 
-                (SELECT COUNT(*) FROM asignaciones a WHERE a.usuario_id = u.id) as total_asignados,
-                (SELECT COUNT(DISTINCT h.legajo) FROM gestiones_historial h WHERE h.usuario_id = u.id) as clientes_gestionados,
-                (SELECT COUNT(DISTINCT h2.legajo) FROM gestiones_historial h2 WHERE h2.usuario_id = u.id AND h2.estado = 'promesa') as promesas_logradas
-            FROM usuarios u
-            WHERE u.rol = 'operador' OR u.rol = 'colaborador'
-            ORDER BY total_asignados DESC";
-            
-    $stmt_ops = $pdo->query($sql_ops);
-    $data = $stmt_ops->fetchAll(PDO::FETCH_ASSOC);
-
-    echo json_encode([
-        'success' => true, 
-        'resumen' => $resumen, 
+    $out = [
+        'success' => true,
+        'resumen' => [
+            'total_asignados' => $res['total_asignados'],
+            'total_gestionados' => $res['total_gestionados'],
+            'total_promesas' => $res['total_promesas'],
+            'cobertura' => $cobertura
+        ],
         'estados' => $estados,
-        'data' => $data
-    ]);
+        'data' => $ops,
+        'sucursales' => $sucursales,
+        'ultimas_gestiones' => $feed
+    ];
+
+    // Limpiamos basura del buffer y enviamos
+    ob_clean();
+    echo json_encode($out, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
 
 } catch (Exception $e) {
-    echo json_encode(['success' => false, 'message' => 'Error al cargar métricas: ' . $e->getMessage()]);
+    ob_clean();
+    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
 }
-?>
+ob_end_flush();
