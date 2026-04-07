@@ -14,19 +14,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $rol = $_SESSION['user_rol'];
         $user_id = $_SESSION['user_id'];
         
-        // ── ACCIÓN: ELIMINAR ──
+        // ── ACCIÓN: ELIMINAR (ELIMINACIÓN LÓGICA — solo oculta el registro) ──
         if ($action === 'delete') {
             if ($rol !== 'admin' && $rol !== 'colaborador') {
                 throw new Exception("No tienes permisos para eliminar gestiones.");
             }
             $id_gestion = (int)$_POST['id'];
-            $stmt = $pdo->prepare("DELETE FROM gestiones_historial WHERE id = ?");
+            // En lugar de borrar físicamente, marcamos oculta = 1
+            $stmt = $pdo->prepare("UPDATE gestiones_historial SET oculta = 1 WHERE id = ?");
+            $stmt->execute([$id_gestion]);
+            echo json_encode(['success' => true, 'message' => 'Gestión ocultada correctamente']);
+            exit;
+        }
+
+        // ── ACCIÓN: RESTAURAR (Solo Admin puede restaurar gestiones ocultas) ──
+        if ($action === 'restore') {
+            if ($rol !== 'admin') {
+                throw new Exception("Solo los Administradores pueden restaurar gestiones.");
+            }
+            $id_gestion = (int)$_POST['id'];
+            $stmt = $pdo->prepare("UPDATE gestiones_historial SET oculta = 0 WHERE id = ?");
             $stmt->execute([$id_gestion]);
             echo json_encode(['success' => true]);
             exit;
         }
 
-        // ── ACCIÓN: OCULTAR / RESTAURAR ──
+        // ── ACCIÓN: OCULTAR / RESTAURAR (toggle legacy — conservado por compatibilidad) ──
         if ($action === 'toggle_oculta') {
             if ($rol !== 'admin' && $rol !== 'colaborador') {
                 throw new Exception("No tienes permisos para ocultar/restaurar gestiones.");

@@ -14,9 +14,11 @@ $id_interno   = (int)($_GET['id']    ?? 0);
 $legajo_param = trim($_GET['legajo'] ?? '');
 $ver_ocultas  = (isset($_GET['ver_ocultas']) && $_GET['ver_ocultas'] === '1') ? 1 : 0;
 $rol_usuario  = $_SESSION['user_rol'] ?? 'operador';
-$can_see_hidden = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
+// Solo el ADMINISTRADOR puede ver las gestiones ocultas (para auditoría).
+// El colaborador hace la eliminación lógica pero NO puede ver los registros ocultos.
+$can_see_hidden = ($rol_usuario === 'admin');
 
-// Un operador nunca puede ver las ocultas
+// Operadores y colaboradores nunca pueden ver las ocultas
 if (!$can_see_hidden) {
     $ver_ocultas = 0;
 }

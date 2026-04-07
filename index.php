@@ -903,16 +903,24 @@ const load = async () => {
             let hJson = JSON.stringify(h).replace(/'/g, "\\'").replace(/"/g, '&quot;'); 
 
             if (canAssign) {
-                btnEdit = `<button type="button" onclick="prepararEdicion(${hJson})" class="text-blue-500 hover:text-blue-700 transition">✏️ Editar</button>`;
-                btnDel = `<button type="button" onclick='eliminarGestion(${h.id}, "${legajo}")' class="text-rose-500 hover:text-rose-700 transition">🗑️ Borrar</button>`;
+                // Si la gestión está oculta: solo el Admin puede restaurarla
+                if (isOculta) {
+                    if (isAdmin) {
+                        btnDel = `<button type="button" onclick='restaurarGestion(${h.id}, "${legajo}")' class="text-emerald-600 hover:text-emerald-800 transition font-black">↩ Restaurar</button>`;
+                    }
+                } else {
+                    // Gestión visible: se puede editar y "eliminar" (eliminación lógica)
+                    btnEdit = `<button type="button" onclick="prepararEdicion(${hJson})" class="text-blue-500 hover:text-blue-700 transition">✏️ Editar</button>`;
+                    btnDel = `<button type="button" onclick='eliminarGestion(${h.id}, "${legajo}")' class="text-rose-500 hover:text-rose-700 transition">🗑️ Eliminar</button>`;
+                }
             } else if (isOperador && h.usuario_id == currentUserId && h.id == maxId && intentos < 3) {
                 btnEdit = `<button type="button" onclick="prepararEdicion(${hJson})" class="text-blue-500 hover:text-blue-700 transition">✏️ Editar (${intentos}/3)</button>`;
             }
             
             let actionBtns = (btnEdit || btnDel) ? `<div class="flex gap-4 text-[10px] font-black uppercase mt-3 pt-3 border-t border-slate-100">${btnEdit} ${btnDel}</div>` : '';
-            let ocultaBadge = isOculta ? `<span class="bg-rose-100 text-rose-600 px-2 py-0.5 rounded text-[8px] font-black uppercase ml-2">👁️ Oculta</span>` : '';
+            let ocultaBadge = isOculta ? `<span class="bg-rose-100 text-rose-600 px-2 py-0.5 rounded text-[8px] font-black uppercase ml-2">🗑️ Eliminada</span>` : '';
 
-            return `<div class="bg-white p-5 rounded-3xl shadow-sm text-xs border ${isOculta ? 'border-rose-300 opacity-75' : 'border-slate-100'} mb-4 transition hover:shadow-md">
+            return `<div class="p-5 rounded-3xl shadow-sm text-xs border mb-4 transition hover:shadow-md ${isOculta ? 'bg-slate-100 border-dashed border-slate-400 opacity-50' : 'bg-white border-slate-100'}">
                 <div class="flex justify-between items-center font-black text-[9px] mb-3 uppercase tracking-widest text-slate-400"><span>📅 ${fH}</span><span>Op: ${h.operador}</span></div>
                 <div class="mb-3"><span class="px-3 py-1 rounded-full text-[8px] font-black uppercase ${badgeH}">${h.estado.replace('_', ' ')}</span> ${ocultaBadge}</div>
                 <p class="text-slate-600 font-semibold leading-relaxed">${h.observacion}</p>${details}
@@ -969,7 +977,8 @@ const load = async () => {
             btnGuardar.classList.add('hover:bg-blue-700');
         }
 
-        let verOcultasHTML = canAssign ? `<div class="mb-4 flex justify-between items-center bg-slate-100 px-4 py-3 rounded-2xl"><span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Ver gestiones ocultas</span><input type="checkbox" id="chkVerOcultas" onchange="cargarHistorial('${c.legajo}')" class="w-4 h-4 rounded text-blue-600"></div>` : '';
+        // Solo el Admin ve el toggle "Ver eliminados" para auditoría
+        let verOcultasHTML = isAdmin ? `<div class="mb-4 flex justify-between items-center bg-slate-100 px-4 py-3 rounded-2xl"><span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">🔍 Ver gestiones eliminadas</span><input type="checkbox" id="chkVerOcultas" onchange="cargarHistorial('${c.legajo}')" class="w-4 h-4 rounded text-blue-600"></div>` : '';
         document.getElementById('mHis').innerHTML = verOcultasHTML + `<div id="mHisList"></div>`;
         
         await cargarHistorial(c.legajo);
@@ -1008,13 +1017,28 @@ const load = async () => {
     }
 
     async function eliminarGestion(id, legajo) {
-        if (!confirm('¿Estás seguro de ELIMINAR permanentemente esta gestión?')) return;
+        if (!confirm('¿Eliminar esta gestión? Quedará oculta y solo el Administrador podrá restaurarla.')) return;
         let fd = new FormData();
         fd.append('action', 'delete');
         fd.append('id', id);
         await fetch(api_gestion, { method:'POST', body:fd });
         await cargarHistorial(legajo);
         load(); stats(); if(canAssign) loadDashboard(); loadNotificaciones();
+    }
+
+    async function restaurarGestion(id, legajo) {
+        if (!confirm('¿Restaurar esta gestión? Volverá a ser visible para todos.')) return;
+        let fd = new FormData();
+        fd.append('action', 'restore');
+        fd.append('id', id);
+        const res = await fetch(api_gestion, { method: 'POST', body: fd });
+        const d = await res.json();
+        if (d.success) {
+            await cargarHistorial(legajo);
+            load(); stats(); if(canAssign) loadDashboard(); loadNotificaciones();
+        } else {
+            alert('Error al restaurar: ' + (d.message || 'Error desconocido'));
+        }
     }
 
     if (document.getElementById('mEst') && document.getElementById('mFec')) {
