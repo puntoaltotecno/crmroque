@@ -487,7 +487,8 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
     // ── COMUNICADOS ──
     async function checkComunicado() {
         try {
-            const res = await fetch('api_comunicados.php?action=get');
+            // Se agregó un timestamp (_t) para romper la caché estricta de Hostinger y que el Short Polling funcione
+            const res = await fetch(`api_comunicados.php?action=get&_t=${Date.now()}`);
             const d = await res.json();
             if (d.success && d.data) {
                 const lastSeen = localStorage.getItem('comunicado_visto');
@@ -665,13 +666,11 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
 
                 if (document.getElementById('feedGestiones') && data.ultimas_gestiones) {
                 document.getElementById('feedGestiones').innerHTML = data.ultimas_gestiones.map(g => {
-                    // Protecciones para evitar fallos si el dato viene nulo
                     let estadoStr = g.feed_estado || 'sin_gestion';
                     let badge = `badge-${estadoStr}`;
                     let fechaStr = g.feed_fecha || '';
                     let fechaHora = fechaStr.length >= 16 ? fechaStr.substring(0, 16).replace(/-/g, '/') : fechaStr;
                     
-                    // Protección ESTRICTA para inyección en el onclick
                     let cJson = JSON.stringify(g).replace(/'/g, "\\'").replace(/"/g, '&quot;'); 
                     
                     return `<div onclick="openModal(${cJson})" class="p-5 bg-slate-800/80 rounded-2xl border border-slate-700/50 hover:bg-slate-700 cursor-pointer transition mb-3 group">
@@ -840,6 +839,9 @@ const load = async () => {
         stats(); 
         loadNotificaciones();
         checkComunicado();
+        
+        // NUEVO: Motor de Short Polling. Consulta mensajes automáticamente cada 30 segundos.
+        setInterval(checkComunicado, 30000);
     };
 
     let searchTimeout;
