@@ -1,7 +1,7 @@
 <?php
-
 /**
  * ARCHIVO: api_clientes.php
+ * VERSIÓN: 1.8 - Agregado soporte para columna MOTO
  */
 require_once 'db.php';
 
@@ -20,12 +20,15 @@ try {
     $q          = $_GET['q'] ?? '';
     $f_estado   = $_GET['estado'] ?? '';
     $f_operador = isset($_GET['operador_id']) ? (int)$_GET['operador_id'] : 0;
+    
+    // ── NUEVO: Captura del filtro MOTO ──
+    $f_moto     = isset($_GET['moto']) ? (int)$_GET['moto'] : 0;
 
     $subquery_ultima = "SELECT g1.* FROM gestiones_historial g1
                         JOIN (SELECT MAX(id) as max_id FROM gestiones_historial GROUP BY legajo) g2
                         ON g1.id = g2.max_id";
 
-    // CORE SELECT
+    // CORE SELECT (incluye c.moto en la selección)
     $select_core = "SELECT c.*, 
                     u.nombre as operador_asignado,
                     u.id as operador_id,
@@ -81,6 +84,11 @@ try {
         }
     }
 
+    // ── NUEVO: Filtro MOTO ──
+    if ($f_moto === 1) {
+        $where .= " AND c.moto = 1";
+    }
+
     // ── REGLA DE BÚSQUEDA UNIVERSAL ──
     if ($can_see_all) {
         if ($f_operador > 0) {
@@ -90,8 +98,6 @@ try {
             $where .= " AND a.usuario_id IS NULL";
         }
     } else {
-        // Si el operador NO está buscando nada específico, mostramos SOLO sus clientes.
-        // Si ESTÁ buscando algo ($q no está vacío), ignoramos este filtro para que busque en toda la BD.
         if (empty($q)) {
             $where .= " AND a.usuario_id = :uid";
             $params[':uid'] = $uid;

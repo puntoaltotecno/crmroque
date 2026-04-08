@@ -1,6 +1,7 @@
 <?php
 /**
  * ARCHIVO: api_importar_csv.php
+ * VERSIÓN: 1.8 - Agregado soporte para columna MOTO
  */
 require_once 'db.php';
 ini_set('auto_detect_line_endings', TRUE);
@@ -16,7 +17,6 @@ function fmt_fecha($raw) {
     $raw = trim($raw);
     if (empty($raw) || strtolower($raw) === 'null') return null;
     
-    // Extraer solo la parte de la fecha si viene con hora (ej: "2022-08-30 00:00:00")
     $partes = explode(' ', $raw);
     $solo_fecha = $partes[0];
 
@@ -51,24 +51,22 @@ $tmp_name = $_FILES['file']['tmp_name'];
 try {
     $pdo->beginTransaction();
 
-    // Consultas preparadas
     $stmt_check = $pdo->prepare("SELECT legajo, (SELECT estado FROM gestiones_historial g WHERE g.legajo = clientes.legajo ORDER BY id DESC LIMIT 1) as estado_actual FROM clientes WHERE legajo = ?");
     
     $stmt_insert = $pdo->prepare(
         "INSERT INTO clientes (
             l_entidad_id, legajo, razon_social, nro_documento, ultimo_pago,
             c_cuotas, localidad, domicilio,
-            dias_atraso, total_vencido, vencimiento, sucursal, telefonos
-         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+            dias_atraso, total_vencido, vencimiento, sucursal, telefonos, moto
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
     );
 
-    // ESTE UPDATE AHORA SE ASEGURA DE GUARDAR EL ULTIMO PAGO DEL CSV
     $stmt_update = $pdo->prepare(
         "UPDATE clientes SET 
             l_entidad_id = ?, razon_social = ?, nro_documento = ?, ultimo_pago = ?,
             c_cuotas = ?, localidad = ?, domicilio = ?,
             dias_atraso = ?, total_vencido = ?, vencimiento = ?, 
-            sucursal = ?, telefonos = ?
+            sucursal = ?, telefonos = ?, moto = ?
          WHERE legajo = ?"
     );
 
@@ -88,11 +86,17 @@ try {
     if ($handle === false) throw new Exception("No se pudo leer el archivo CSV.");
 
     $primera_linea = fgets($handle);
-    // Limpiamos BOM invisible
     $primera_linea = preg_replace('/\x{FEFF}/u', '', $primera_linea); 
     $delimitador = (strpos($primera_linea, ';') !== false) ? ';' : ',';
     rewind($handle);
-    fgetcsv($handle, 0, $delimitador); // Salta títulos
+    
+    // ── LEER ENCABEZADOS Y DETECTAR ÍNDICES ──
+    $headers = fgetcsv($handle, 0, $delimitador);
+    $headers_lower = array_map('strtolower', array_map('trim', $headers));
+    
+    // Detectar índice de columna MOTO
+    $idx_moto = array_search('moto', $headers_lower);
+    $tiene_moto = ($idx_moto !== false);
 
     $cnt_insert = 0;
     $cnt_update = 0;
@@ -111,7 +115,7 @@ try {
 
         $p_razon = crm_str($d[2] ?? '');
         $p_doc   = crm_str($d[3] ?? '');
-        $p_ult   = fmt_fecha($d[4] ?? null); // <-- RECUPERAMOS EL DATO DE ULTIMO PAGO DEL CSV
+        $p_ult   = fmt_fecha($d[4] ?? null);
         $p_cta   = (int)preg_replace('/[^0-9\-]/', '', $d[5] ?? '0');
         $p_loc   = limpiar($d[6] ?? '');
         $p_dom   = limpiar($d[7] ?? '');
@@ -120,8 +124,17 @@ try {
         $p_ven   = fmt_fecha($d[10] ?? null);
         $p_suc   = limpiar($d[11] ?? '');
         $p_tel   = limpiar($d[12] ?? '');
+        
+        // ── NUEVO: Capturar valor de MOTO desde CSV ──
+        $p_moto = 0;
+        if ($tiene_moto && isset($d[$idx_moto])) {
+            $val_moto = trim(strtolower($d[$idx_moto]));
+            // Acepta: 1, "1", "si", "sí", "s", "true", "moto"
+            if (in_array($val_moto, ['1', 'si', 'sí', 's', 'true', 'moto'])) {
+                $p_moto = 1;
+            }
+        }
 
-        // REGLA: Si la deuda viene en 0 o menos, el cliente está Al Día según el CSV
         $is_al_dia_csv = ($p_tot <= 0);
 
         try {
@@ -129,26 +142,24 @@ try {
             $cliente_existente = $stmt_check->fetch();
 
             if ($cliente_existente) {
-                // Existe -> Actualizar (Esto inyecta el ultimo_pago del CSV a la Base de Datos)
+                // Actualizar cliente existente
                 $stmt_update->execute([
                     $l_ent_id, $p_razon, $p_doc, $p_ult, $p_cta, $p_loc, $p_dom,
-                    $p_mora, $p_tot, $p_ven, $p_suc, $p_tel, $legajo
+                    $p_mora, $p_tot, $p_ven, $p_suc, $p_tel, $p_moto, $legajo
                 ]);
                 $cnt_update++;
 
                 if ($is_al_dia_csv && $cliente_existente['estado_actual'] !== 'al_dia') {
-                    // Si el CSV dice que no debe, y no estaba Al Día, lo pasamos a Al Día
                     $stmt_al_dia->execute([$legajo, $_SESSION['user_id']]);
                     $cnt_al_dia++;
                 } elseif (!$is_al_dia_csv && $cliente_existente['estado_actual'] === 'al_dia') {
-                    // Si volvió a tener deuda, reingresa a mora
                     $stmt_reingreso->execute([$legajo, $_SESSION['user_id']]);
                 }
             } else {
-                // No existe -> Insertar
+                // Insertar nuevo cliente
                 $stmt_insert->execute([
                     $l_ent_id, $legajo, $p_razon, $p_doc, $p_ult, $p_cta, $p_loc, $p_dom,
-                    $p_mora, $p_tot, $p_ven, $p_suc, $p_tel
+                    $p_mora, $p_tot, $p_ven, $p_suc, $p_tel, $p_moto
                 ]);
                 $cnt_insert++;
 
@@ -162,7 +173,7 @@ try {
         }
     }
 
-    // ── Limpiar los ausentes (Los que desaparecieron del CSV) ──
+    // Limpiar ausentes
     $todos_los_legajos = $pdo->query("SELECT legajo, (SELECT estado FROM gestiones_historial g WHERE g.legajo = clientes.legajo ORDER BY id DESC LIMIT 1) as estado_actual FROM clientes")->fetchAll(PDO::FETCH_KEY_PAIR);
     
     foreach ($todos_los_legajos as $leg_bd => $estado_actual) {

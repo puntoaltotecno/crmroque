@@ -252,6 +252,12 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
                             class="w-16 py-4 bg-transparent text-xs font-black text-slate-700 outline-none text-center">
                     </div>
                     <?php endif; ?>
+
+                    <!-- BOTON DE DEUDA MOTO AQUI -->
+                    <label class="flex items-center space-x-2 cursor-pointer bg-red-50 px-4 py-3 rounded-2xl border border-red-200 shadow-sm hover:bg-red-100 transition-colors">
+                        <input type="checkbox" id="filtroMoto" class="form-checkbox h-4 w-4 text-red-600 rounded focus:ring-red-500" onchange="load(); stats();">
+                        <span class="text-[10px] font-black uppercase tracking-widest text-red-700">Deuda Moto</span>
+                    </label>
                 </div>
 
                 <div class="flex gap-2 w-full lg:w-auto">
@@ -621,7 +627,8 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
         const q = document.getElementById('search').value;
         const est = document.getElementById('filter-estado').value;
         const op = document.getElementById('filter-operador')?.value || 0;
-        let url = `exportar_csv.php?q=${encodeURIComponent(q)}&estado=${encodeURIComponent(est)}&operador_id=${encodeURIComponent(op)}`;
+        const isMoto = document.getElementById('filtroMoto')?.checked ? 1 : 0; // NUEVO FILTRO MOTO EXCEL
+        let url = `exportar_csv.php?q=${encodeURIComponent(q)}&estado=${encodeURIComponent(est)}&operador_id=${encodeURIComponent(op)}&moto=${isMoto}`;
         window.location.href = url;
     }
 
@@ -719,7 +726,8 @@ const load = async () => {
         const est = document.getElementById('filter-estado').value;
         const op = document.getElementById('filter-operador')?.value || 0;
         const limit = Math.min(parseInt(document.getElementById('filter-limit')?.value || 200), 500);
-        let url = `${api_clientes}search&q=${encodeURIComponent(q)}&estado=${est}&operador_id=${op}&limit=${limit}`;
+        const isMoto = document.getElementById('filtroMoto')?.checked ? 1 : 0; // NUEVO FILTRO MOTO FETCH
+        let url = `${api_clientes}search&q=${encodeURIComponent(q)}&estado=${est}&operador_id=${op}&limit=${limit}&moto=${isMoto}`;
 
         try {
             const res = await fetch(url);
@@ -729,6 +737,9 @@ const load = async () => {
                 let badgeClass = `badge-${c.estado_actual}`;
                 let labelEstado = c.estado_actual === 'sin_gestion' ? 'PENDIENTE' : c.estado_actual.replace('_', ' ').toUpperCase();
                 
+                // NUEVO BOTÓN MOTO ROJO (se muestra si la base de datos devuelve moto=1)
+                let badgeMoto = c.moto == 1 ? `<span class="inline-flex items-center px-1.5 py-0.5 ml-2 text-[9px] font-black uppercase tracking-widest text-white bg-red-600 rounded-full animate-pulse border border-red-800 shadow-sm" title="Deuda Moto">🚨 MOTO</span>` : '';
+
                 let checkHTML = canAssign ? `<td class="pl-8 pr-2 py-5 text-left" onclick="event.stopPropagation()"><input type="checkbox" value="${c.legajo}" onchange="toggleSelection(event)" ${selectedLegajos.includes(c.legajo) ? 'checked' : ''} class="chk-legajo w-4 h-4 rounded text-blue-600 bg-slate-100 border-slate-300"></td>` : '';
                 let paddingLegajo = canAssign ? 'px-2' : 'px-8';
 
@@ -744,7 +755,7 @@ const load = async () => {
 
                 return `<tr class="hover:bg-blue-50/50 cursor-pointer transition border-l-[6px] border-l-${c.semaforo === 'blanco' ? 'transparent' : (c.semaforo === 'rojo' ? 'rose-500' : (c.semaforo === 'amarillo' ? 'amber-400' : 'emerald-500'))}" ondblclick="openModal(${cJson})">
                     ${checkHTML}
-                    <td class="${paddingLegajo} py-5"><p class="font-black text-slate-800 text-sm">${c.legajo}</p><p class="text-[9px] font-bold text-slate-400 uppercase">${c.nro_documento}</p></td>
+                    <td class="${paddingLegajo} py-5"><p class="font-black text-slate-800 text-sm flex items-center gap-1">${c.legajo} ${badgeMoto}</p><p class="text-[9px] font-bold text-slate-400 uppercase">${c.nro_documento}</p></td>
                     <td class="px-8 py-5"><p class="font-black uppercase text-slate-700 text-sm truncate max-w-[200px]">${c.razon_social}</p><p class="text-[10px] font-bold text-blue-500 uppercase italic">${c.sucursal || 'Central'}</p></td>
                     <td class="px-8 py-5 text-center"><p class="font-bold text-slate-800 text-sm">${c.c_cuotas} Ctas</p>${c.dias_atraso > 0 ? `<p class="text-[9px] font-black text-rose-500 uppercase">${c.dias_atraso} días</p>` : ''}</td>
                     <td class="px-8 py-5 text-right"><p class="font-black text-slate-900 text-base">${trMonto}</p></td>
@@ -870,7 +881,8 @@ const load = async () => {
         const q = document.getElementById('search').value;
         const est = document.getElementById('filter-estado').value;
         const op = document.getElementById('filter-operador')?.value || 0;
-        let url = `${api_clientes}stats&q=${encodeURIComponent(q)}&estado=${est}&operador_id=${op}`;
+        const isMoto = document.getElementById('filtroMoto')?.checked ? 1 : 0; // NUEVO FILTRO MOTO STATS
+        let url = `${api_clientes}stats&q=${encodeURIComponent(q)}&estado=${est}&operador_id=${op}&moto=${isMoto}`;
 
         try {
             const res = await fetch(url), d = await res.json(); 
@@ -934,7 +946,10 @@ const load = async () => {
         document.getElementById('mHis').innerHTML = '<p class="text-center py-10 opacity-30 text-[10px] font-black uppercase tracking-widest">Cargando...</p>';
         document.getElementById('mLegajoRaw').value = c.legajo; 
         document.getElementById('mRazon').innerText = c.razon_social; 
-        document.getElementById('mLegajo').innerText = `ID: ${c.l_entidad_id || '-'} • Legajo: ${c.legajo}`;
+        
+        let badgeMotoModal = c.moto == 1 ? `<span class="inline-flex items-center px-1.5 py-0.5 ml-2 text-[9px] font-black uppercase tracking-widest text-white bg-red-600 rounded-full animate-pulse border border-red-800 shadow-sm" title="Deuda Moto">🚨 MOTO</span>` : '';
+        document.getElementById('mLegajo').innerHTML = `ID: ${c.l_entidad_id || '-'} • Legajo: ${c.legajo} ${badgeMotoModal}`;
+        
         document.getElementById('mSucursal').innerText = c.sucursal || 'Central';
         if (canAssign) document.getElementById('mAsignacion').value = c.operador_id || '';
         
@@ -1113,7 +1128,7 @@ const load = async () => {
             const d = await res.json(); 
             if (document.getElementById('importOverlay')) document.body.removeChild(overlay);
             if(d.success) { 
-                const msg = d.count + (d.errores && d.errores.length ? '\\n\\nErrores:\\n' + d.errores.join('\\n') : '');
+                const msg = d.count + (d.errores && d.errores.length ? '\n\nErrores:\n' + d.errores.join('\n') : '');
                 const resDiv = document.createElement('div');
                 resDiv.innerHTML = `
                     <div style="position:fixed;inset:0;background:rgba(15,23,42,0.8);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:9999;">
