@@ -86,9 +86,11 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
                     <?php if($can_assign): ?>
                     <button onclick="switchTab('dashboard')" id="btn-dashboard" class="text-[11px] font-black uppercase tracking-widest text-slate-400 transition pb-1">Tablero</button>
                     <?php endif; ?>
-                    <button onclick="switchTab('clientes')" id="btn-clientes" class="text-[11px] font-black uppercase tracking-widest text-slate-400 transition pb-1">Cartera Activa</button>
+                    <button onclick="switchTab('rendimiento')" id="btn-rendimiento" class="text-[11px] font-black uppercase tracking-widest text-slate-400 transition pb-1 hover:text-slate-600">Mi Rendimiento</button>
+                    <button onclick="switchTab('clientes')" id="btn-clientes" class="text-[11px] font-black uppercase tracking-widest text-slate-400 transition pb-1 hover:text-slate-600">Cartera Activa</button>
                     <?php if($can_assign): ?>
                     <button onclick="switchTab('usuarios')" id="btn-usuarios" class="text-[11px] font-black uppercase tracking-widest text-slate-400 transition pb-1">Equipo</button>
+                    <button onclick="switchTab('reportes')" id="btn-reportes" class="text-[11px] font-black uppercase tracking-widest text-slate-400 transition pb-1">Reportes</button>
                     <?php endif; ?>
                 </nav>
             </div>
@@ -305,6 +307,159 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
             </div>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="listaPersonal"></div>
         </section>
+
+        <!-- ========================================================= -->
+        <!-- SECCIÓN: MI RENDIMIENTO (OPERADORES Y ADMINS)             -->
+        <!-- ========================================================= -->
+        <section id="sec-rendimiento" class="hidden space-y-8">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Panel Principal: Mis Estadísticas -->
+                <div class="lg:col-span-2 space-y-8">
+                    <div class="bg-slate-900 p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden text-white">
+                        <div class="absolute -right-10 -top-10 w-40 h-40 bg-blue-500 rounded-full blur-3xl opacity-20"></div>
+                        <h3 class="text-2xl font-black uppercase italic tracking-tighter mb-8">📊 Mi Rendimiento</h3>
+                        
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                            <div class="bg-white/10 p-5 rounded-2xl backdrop-blur-sm border border-white/5">
+                                <p class="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Total Asignados</p>
+                                <h4 id="rm-asignados" class="text-2xl font-bold">0</h4>
+                            </div>
+                            <div class="bg-white/10 p-5 rounded-2xl backdrop-blur-sm border border-white/5">
+                                <p class="text-[9px] font-black uppercase tracking-widest text-emerald-400 mb-1">Clientes al Día</p>
+                                <h4 id="rm-aldia" class="text-2xl font-bold text-emerald-300">0</h4>
+                            </div>
+                            <div class="bg-white/10 p-5 rounded-2xl backdrop-blur-sm border border-white/5">
+                                <p class="text-[9px] font-black uppercase tracking-widest text-amber-400 mb-1">Promesas Activas</p>
+                                <h4 id="rm-promesas" class="text-2xl font-bold text-amber-300">0</h4>
+                            </div>
+                            <div class="bg-rose-500/20 p-5 rounded-2xl backdrop-blur-sm border border-rose-500/30">
+                                <p class="text-[9px] font-black uppercase tracking-widest text-rose-300 mb-1">Prom. Vencidas</p>
+                                <h4 id="rm-vencidas" class="text-2xl font-bold text-rose-400">0</h4>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-800/50 p-6 rounded-2xl border border-slate-700">
+                            <div class="flex justify-between items-end mb-3">
+                                <div>
+                                    <p class="text-[10px] font-black uppercase tracking-widest text-blue-400">Posición Actual</p>
+                                    <p class="text-lg font-bold">🏆 <span id="rm-posicion">#0</span> <span class="text-sm font-medium text-slate-400 ml-2" id="rm-total-ops">de 0</span></p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Distancia al Líder</p>
+                                    <p class="text-sm font-bold text-slate-300" id="rm-distancia">-</p>
+                                </div>
+                            </div>
+                            <div class="w-full bg-slate-700/50 rounded-full h-3 overflow-hidden border border-slate-600">
+                                <div id="rm-barra" class="bg-gradient-to-r from-blue-500 to-emerald-400 h-full rounded-full transition-all duration-1000" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Mi Agenda Diaria -->
+                    <div class="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-xl font-black text-slate-800 uppercase italic tracking-tighter">📅 Mi Agenda Hoy</h3>
+                            <button onclick="cargarMiRendimiento()" class="text-slate-400 hover:text-blue-600 transition" title="Actualizar">🔄</button>
+                        </div>
+                        <div class="overflow-x-auto custom-scroll max-h-[400px] overflow-y-auto">
+                            <table class="w-full text-sm">
+                                <thead class="bg-slate-50 border-b text-slate-400 font-black uppercase text-[10px] tracking-widest sticky top-0">
+                                    <tr>
+                                        <th class="px-4 py-3 text-left">Prioridad</th>
+                                        <th class="px-4 py-3 text-left">Cliente</th>
+                                        <th class="px-4 py-3 text-left">Deuda</th>
+                                        <th class="px-4 py-3 text-left">Fecha</th>
+                                        <th class="px-4 py-3 text-center">Acción</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="rm-agenda-body" class="divide-y divide-slate-100">
+                                    <tr><td colspan="5" class="py-10 text-center text-[10px] font-black text-slate-400 uppercase">Cargando agenda...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Columna Derecha: Ranking -->
+                <div class="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col h-[700px]">
+                    <h3 class="text-xl font-black text-slate-800 uppercase italic tracking-tighter mb-2">🏅 Podio del Mes</h3>
+                    <p class="text-[10px] uppercase font-bold text-slate-400 mb-6">Los mejores de los últimos 30 días</p>
+                    <div id="rm-ranking-body" class="space-y-3 flex-1 overflow-y-auto custom-scroll pr-2">
+                        <p class="text-center py-10 text-[10px] font-black text-slate-400 uppercase">Cargando ranking...</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="sec-reportes" class="hidden space-y-8">
+            <!-- Controles de filtro -->
+            <div class="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
+                <h3 class="text-2xl font-black text-slate-800 uppercase italic tracking-tighter mb-6">Filtros de Análisis</h3>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Desde</label>
+                        <input type="date" id="rep-desde" class="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-semibold outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Hasta</label>
+                        <input type="date" id="rep-hasta" class="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-semibold outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Período Rápido</label>
+                        <select id="rep-periodo" onchange="aplicarPeriodo()" class="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-semibold outline-none cursor-pointer">
+                            <option value="hoy">Hoy</option>
+                            <option value="semana" selected>Últimos 7 días</option>
+                            <option value="mes">Últimos 30 días</option>
+                            <option value="trimestre">Últimos 90 días</option>
+                            <option value="personalizado">Personalizado</option>
+                        </select>
+                    </div>
+                    <button onclick="cargarResumenGeneral()" class="bg-blue-600 text-white px-8 py-4 rounded-2xl text-[11px] font-black uppercase shadow-xl hover:bg-blue-700 transition">🔄 Actualizar</button>
+                </div>
+            </div>
+
+            <!-- Tarjeta de Resumen General -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="bg-slate-900 p-6 rounded-[2rem] text-white shadow-xl">
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Operadores Activos</p>
+                    <h4 id="rep-op-activos" class="text-3xl font-black">0</h4>
+                    <p id="rep-op-totales" class="text-[9px] text-slate-500 mt-2 uppercase tracking-widest">de 0 totales</p>
+                </div>
+                <div class="bg-blue-600 p-6 rounded-[2rem] text-white shadow-xl">
+                    <p class="text-[10px] font-black text-blue-200 uppercase tracking-widest mb-2">Gestiones Total</p>
+                    <h4 id="rep-gestiones" class="text-3xl font-black">0</h4>
+                </div>
+                <div class="bg-emerald-600 p-6 rounded-[2rem] text-white shadow-xl">
+                    <p class="text-[10px] font-black text-emerald-200 uppercase tracking-widest mb-2">Clientes Únicos</p>
+                    <h4 id="rep-clientes" class="text-3xl font-black">0</h4>
+                </div>
+                <div class="bg-gradient-to-br from-amber-500 to-orange-600 p-6 rounded-[2rem] text-white shadow-xl">
+                    <p class="text-[10px] font-black text-amber-100 uppercase tracking-widest mb-2">Promesas Al Día</p>
+                    <h4 id="rep-al-dia" class="text-3xl font-black">0</h4>
+                </div>
+            </div>
+
+            <!-- Pestañas de reportes -->
+            <div class="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
+                <div class="flex gap-0 border-b border-slate-100 overflow-x-auto custom-scroll">
+                    <button onclick="cambiarReporte('ranking')" id="rep-tab-ranking" class="px-8 py-5 text-[11px] font-black uppercase tracking-widest text-slate-400 border-b-2 border-transparent whitespace-nowrap">🏆 Ranking</button>
+                    <button onclick="cambiarReporte('productividad')" id="rep-tab-productividad" class="px-8 py-5 text-[11px] font-black uppercase tracking-widest text-slate-400 border-b-2 border-transparent whitespace-nowrap hover:text-slate-600">📊 Productividad</button>
+                    <button onclick="cambiarReporte('efectividad')" id="rep-tab-efectividad" class="px-8 py-5 text-[11px] font-black uppercase tracking-widest text-slate-400 border-b-2 border-transparent whitespace-nowrap hover:text-slate-600">✅ Efectividad</button>
+                    <button onclick="cambiarReporte('matriz')" id="rep-tab-matriz" class="px-8 py-5 text-[11px] font-black uppercase tracking-widest text-slate-400 border-b-2 border-transparent whitespace-nowrap hover:text-slate-600">⚙️ Matriz</button>
+                    <button onclick="cambiarReporte('clientes')" id="rep-tab-clientes" class="px-8 py-5 text-[11px] font-black uppercase tracking-widest text-slate-400 border-b-2 border-transparent whitespace-nowrap hover:text-slate-600">👥 Top Clientes</button>
+                    <button onclick="cambiarReporte('diario')" id="rep-tab-diario" class="px-8 py-5 text-[11px] font-black uppercase tracking-widest text-slate-400 border-b-2 border-transparent whitespace-nowrap hover:text-slate-600">📅 Diario</button>
+                </div>
+                <div id="rep-contenido" class="p-8 min-h-[600px]">
+                    <p class="text-center py-20 text-slate-400 font-bold text-[10px] uppercase tracking-widest">Seleccione un período para comenzar.</p>
+                </div>
+            </div>
+
+            <!-- Botones de exportación -->
+            <div class="flex gap-4">
+                <button onclick="exportarReporte('csv')" class="flex-1 bg-blue-50 text-blue-600 px-8 py-4 rounded-2xl text-[11px] font-black uppercase border border-blue-100 hover:bg-blue-100 transition">📥 Exportar a CSV</button>
+                <button onclick="exportarReporte('json')" class="flex-1 bg-slate-50 text-slate-600 px-8 py-4 rounded-2xl text-[11px] font-black uppercase border border-slate-100 hover:bg-slate-100 transition">📋 Exportar a JSON</button>
+            </div>
+        </section>
     </main>
 
     <!-- BANNER FLOTANTE DE COMUNICADOS -->
@@ -428,6 +583,16 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
                         </select>
                         <input type="number" step="0.01" name="monto_promesa" id="mMon" placeholder="Monto Acuerdo" class="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none">
                         <input type="date" name="fecha_promesa" id="mFec" class="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none transition-colors">
+                    </div>
+                    <!-- TIPS CONTEXTUALES -->
+                    <div id="tips-estado" class="hidden bg-blue-50 border border-blue-100 p-4 rounded-xl text-xs text-blue-800 mb-4 transition-all duration-300">
+                        <div class="flex gap-3">
+                            <span class="text-lg">💡</span>
+                            <div>
+                                <h5 class="font-black uppercase tracking-widest text-[9px] mb-1">Tip de Gestión</h5>
+                                <p id="tips-texto" class="font-semibold"></p>
+                            </div>
+                        </div>
                     </div>
                     <textarea name="observacion" rows="3" required class="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium outline-none resize-none flex-1 custom-scroll" placeholder="Resumen de la conversación..."></textarea>
                     <button type="submit" id="btnSubmitGestion" class="w-full bg-blue-600 text-white py-5 rounded-3xl font-black uppercase text-xs shadow-xl hover:bg-blue-700 transition">Guardar Gestión</button>
@@ -829,9 +994,11 @@ const load = async () => {
     function switchTab(tab) { 
         if(document.getElementById('sec-dashboard')) document.getElementById('sec-dashboard').classList.toggle('hidden', tab !== 'dashboard');
         document.getElementById('sec-clientes').classList.toggle('hidden', tab !== 'clientes'); 
-        if(document.getElementById('sec-usuarios')) document.getElementById('sec-usuarios').classList.toggle('hidden', tab !== 'usuarios'); 
+        if(document.getElementById('sec-usuarios')) document.getElementById('sec-usuarios').classList.toggle('hidden', tab !== 'usuarios');
+        if(document.getElementById('sec-reportes')) document.getElementById('sec-reportes').classList.toggle('hidden', tab !== 'reportes');
+        if(document.getElementById('sec-rendimiento')) document.getElementById('sec-rendimiento').classList.toggle('hidden', tab !== 'rendimiento');
         
-        ['clientes', 'usuarios', 'dashboard'].forEach(t => {
+        ['clientes', 'usuarios', 'dashboard', 'reportes', 'rendimiento'].forEach(t => {
             const btn = document.getElementById('btn-' + t);
             if (btn) {
                 if (t === tab) {
@@ -846,6 +1013,17 @@ const load = async () => {
 
         if (tab === 'usuarios') loadPersonal(); 
         if (tab === 'dashboard') loadDashboard();
+        if (tab === 'reportes') {
+            const hoy = new Date();
+            const hace7 = new Date(); hace7.setDate(hoy.getDate() - 7);
+            document.getElementById('rep-desde').value = hace7.toISOString().split('T')[0];
+            document.getElementById('rep-hasta').value = hoy.toISOString().split('T')[0];
+            cargarResumenGeneral();
+            cambiarReporte('ranking');
+        }
+        if (tab === 'rendimiento') {
+            cargarMiRendimiento();
+        }
     }
 
     window.onload = async () => { 
@@ -1074,6 +1252,20 @@ const load = async () => {
     if(document.getElementById('gForm')){
         document.getElementById('gForm').onsubmit = async (e) => {
             e.preventDefault(); 
+            // Manejar Tips
+            const val = e.target.value;
+            const tipsContainer = document.getElementById('tips-estado');
+            const tipsText = document.getElementById('tips-texto');
+            if (tipsContainer) {
+                tipsContainer.classList.remove('hidden');
+                if (val === 'no_responde') tipsText.innerHTML = "Intentá contactar por <b>WhatsApp</b> con un mensaje breve: <i>'Le llamé de Roque, necesito hablar con usted'</i>. Mejorá tus chances llamando a las 18-20hs.";
+                else if (val === 'no_corresponde') tipsText.innerHTML = "Si te atiende otra persona, intentá averiguar <b>un número alternativo o paradero</b> antes de cortar. Marcá para actualizar los datos en oficina.";
+                else if (val === 'llamar') tipsText.innerHTML = "Agendá un <b>horario específico</b> y cumplilo. La puntualidad al volver a llamar genera presión positiva y seriedad.";
+                else if (val === 'promesa') tipsText.innerHTML = "Repetí el <b>monto exacto y fecha</b> al finalizar la llamada: <i>'Entonces confirmamos $XXX para este viernes 15'</i>. Creá compromiso verbal.";
+                else if (val === 'al_dia') tipsText.innerHTML = "¡Excelente! Agradecé el pago y cordialmente da por finalizado el reclamo.";
+                else tipsContainer.classList.add('hidden');
+            }
+
             const estadoSelec = document.getElementById('mEst').value;
             const fechaSelec = document.getElementById('mFec').value;
             if ((estadoSelec === 'promesa' || estadoSelec === 'llamar') && !fechaSelec) {
@@ -1158,6 +1350,391 @@ const load = async () => {
         } catch(e) { alert("Error al procesar el archivo de asignaciones."); } 
         finally { ogBtn.innerText = ogText; ogBtn.classList.remove('animate-pulse'); input.value = ""; }
     }
+
+    // ─────────────────────────────────────────────────────────────────
+    // MÓDULO DE REPORTES
+    // ─────────────────────────────────────────────────────────────────
+
+    let reporteActual = 'ranking';
+    let datosReporteActual = {};
+    let filtroReportes = {
+        desde: (() => { const d = new Date(); d.setDate(d.getDate() - 7); return d.toISOString().split('T')[0]; })(),
+        hasta: new Date().toISOString().split('T')[0]
+    };
+
+    function aplicarPeriodo() {
+        const periodo = document.getElementById('rep-periodo').value;
+        const hoy = new Date();
+        let desde = new Date();
+        if (periodo === 'hoy') { desde = new Date(hoy); }
+        else if (periodo === 'semana') { desde.setDate(hoy.getDate() - 7); }
+        else if (periodo === 'mes') { desde.setDate(hoy.getDate() - 30); }
+        else if (periodo === 'trimestre') { desde.setDate(hoy.getDate() - 90); }
+        else { return; }
+        filtroReportes.desde = desde.toISOString().split('T')[0];
+        filtroReportes.hasta = hoy.toISOString().split('T')[0];
+        document.getElementById('rep-desde').value = filtroReportes.desde;
+        document.getElementById('rep-hasta').value = filtroReportes.hasta;
+        cargarResumenGeneral();
+        cambiarReporte(reporteActual);
+    }
+
+    function actualizarFiltros() {
+        filtroReportes.desde = document.getElementById('rep-desde').value || filtroReportes.desde;
+        filtroReportes.hasta = document.getElementById('rep-hasta').value || filtroReportes.hasta;
+    }
+
+    async function cargarResumenGeneral() {
+        actualizarFiltros();
+        try {
+            const res = await fetch(`api_reportes.php?action=resumen_general&fecha_desde=${filtroReportes.desde}&fecha_hasta=${filtroReportes.hasta}`);
+            const d = await res.json();
+            if (d.success) {
+                document.getElementById('rep-op-activos').innerText = d.data.operadores_activos || 0;
+                document.getElementById('rep-op-totales').innerText = `de ${d.data.operadores_totales || 0} totales`;
+                document.getElementById('rep-gestiones').innerText = d.data.total_gestiones || 0;
+                document.getElementById('rep-clientes').innerText = d.data.clientes_unicos || 0;
+                document.getElementById('rep-al-dia').innerText = d.data.al_dia_totales || 0;
+            }
+        } catch (e) { console.error('Error cargando resumen:', e); }
+    }
+
+    async function cambiarReporte(tipo) {
+        reporteActual = tipo;
+        actualizarFiltros();
+
+        // Actualizar tabs
+        document.querySelectorAll('[id^="rep-tab-"]').forEach(btn => {
+            btn.classList.remove('text-blue-600', 'border-blue-600', 'tab-active');
+            btn.classList.add('text-slate-400', 'border-transparent');
+        });
+        const tabActivo = document.getElementById(`rep-tab-${tipo}`);
+        if (tabActivo) {
+            tabActivo.classList.add('text-blue-600', 'border-blue-600', 'tab-active');
+            tabActivo.classList.remove('text-slate-400', 'border-transparent');
+        }
+
+        document.getElementById('rep-contenido').innerHTML = '<p class="text-center py-20 text-slate-400 font-bold text-[10px] uppercase tracking-widest">Cargando datos...</p>';
+
+        const mapAccion = {
+            ranking: 'ranking_operadores',
+            productividad: 'productividad',
+            efectividad: 'efectividad_al_dia',
+            matriz: 'matriz_cruce',
+            clientes: 'clientes_mas_gestionados',
+            diario: 'resumen_diario'
+        };
+
+        try {
+            const res = await fetch(`api_reportes.php?action=${mapAccion[tipo]}&fecha_desde=${filtroReportes.desde}&fecha_hasta=${filtroReportes.hasta}`);
+            const d = await res.json();
+            if (d.success) {
+                datosReporteActual = d.data;
+                renderizarReporte(tipo, d.data);
+            } else {
+                document.getElementById('rep-contenido').innerHTML = `<p class="text-center py-10 text-rose-500 font-bold">⚠️ Error: ${d.error || d.message}</p>`;
+            }
+        } catch (e) {
+            document.getElementById('rep-contenido').innerHTML = `<p class="text-center py-10 text-rose-500 font-bold">❌ Error de conexión</p>`;
+        }
+    }
+
+    function renderizarReporte(tipo, datos) {
+        let html = '';
+        if (!datos || (Array.isArray(datos) && datos.length === 0)) {
+            document.getElementById('rep-contenido').innerHTML = `<p class="text-center py-20 text-slate-400 font-bold text-[10px] uppercase tracking-widest">Sin datos para el período seleccionado.</p>`;
+            return;
+        }
+
+        if (tipo === 'ranking') {
+            html = `<h3 class="text-xl font-black text-slate-800 uppercase italic tracking-tighter mb-6">🏆 Ranking de Operadores</h3>
+            <div class="overflow-x-auto custom-scroll"><table class="w-full text-sm">
+                <thead class="bg-slate-50 border-b text-slate-400 font-black uppercase text-[10px] tracking-widest"><tr>
+                    <th class="px-6 py-4 text-left">Posición</th><th class="px-6 py-4 text-left">Operador</th>
+                    <th class="px-6 py-4 text-center">Gestiones</th><th class="px-6 py-4 text-center">Clientes</th>
+                    <th class="px-6 py-4 text-center">Promesas</th><th class="px-6 py-4 text-center">Al Día</th>
+                    <th class="px-6 py-4 text-center">Efectividad</th><th class="px-6 py-4 text-center">Conv. Al Día</th>
+                </tr></thead>
+                <tbody class="divide-y divide-slate-100">
+                ${datos.map((op, i) => {
+                    const medal = i === 0 ? '🥇' : (i === 1 ? '🥈' : (i === 2 ? '🥉' : ''));
+                    const bg = i === 0 ? 'bg-amber-50' : (i === 1 ? 'bg-slate-50' : (i === 2 ? 'bg-orange-50' : ''));
+                    const eff = op.efectividad_pct || 0;
+                    const col = eff >= 30 ? 'text-emerald-600 bg-emerald-50' : (eff >= 15 ? 'text-amber-600 bg-amber-50' : 'text-rose-600 bg-rose-50');
+                    return `<tr class="${bg} hover:shadow-sm transition">
+                        <td class="px-6 py-5 font-black text-slate-800">${medal} #${i+1}</td>
+                        <td class="px-6 py-5 font-bold text-slate-700">${op.nombre}</td>
+                        <td class="px-6 py-5 text-center font-black text-blue-600">${op.total_gestiones || 0}</td>
+                        <td class="px-6 py-5 text-center font-bold text-slate-600">${op.clientes_gestionados || 0}</td>
+                        <td class="px-6 py-5 text-center font-bold text-emerald-600">${op.promesas_logradas || 0}</td>
+                        <td class="px-6 py-5 text-center font-bold text-rose-600">${op.clientes_al_dia || 0}</td>
+                        <td class="px-6 py-5 text-center font-black ${col}">${eff}%</td>
+                        <td class="px-6 py-5 text-center font-black text-blue-600">${op.tasa_conversion_al_dia || 0}%</td>
+                    </tr>`;
+                }).join('')}
+                </tbody>
+            </table></div>`;
+        }
+
+        if (tipo === 'productividad') {
+            html = `<h3 class="text-xl font-black text-slate-800 uppercase italic tracking-tighter mb-6">📊 Productividad Operativa</h3>
+            <div class="overflow-x-auto custom-scroll"><table class="w-full text-sm">
+                <thead class="bg-slate-50 border-b text-slate-400 font-black uppercase text-[10px] tracking-widest"><tr>
+                    <th class="px-4 py-3 text-left">Operador</th><th class="px-4 py-3 text-center">Días Activos</th>
+                    <th class="px-4 py-3 text-center">Gestiones</th><th class="px-4 py-3 text-center">Prom/Día</th>
+                    <th class="px-4 py-3 text-center">Última Gestión</th>
+                </tr></thead>
+                <tbody class="divide-y divide-slate-100">
+                ${datos.map(op => `<tr class="hover:bg-blue-50/30">
+                    <td class="px-4 py-3 font-bold text-slate-700 text-xs">${op.operador}</td>
+                    <td class="px-4 py-3 text-center font-bold text-blue-600">${op.dias_activos}</td>
+                    <td class="px-4 py-3 text-center font-black text-slate-800">${op.total_gestiones}</td>
+                    <td class="px-4 py-3 text-center font-bold text-emerald-600">${op.promedio_gestiones_por_dia}</td>
+                    <td class="px-4 py-3 text-center text-[9px] text-slate-500">${op.ultima_gestion ? op.ultima_gestion.split(' ')[0] : '-'}</td>
+                </tr>`).join('')}
+                </tbody>
+            </table></div>`;
+        }
+
+        if (tipo === 'efectividad') {
+            html = `<h3 class="text-xl font-black text-slate-800 uppercase italic tracking-tighter mb-6">✅ Efectividad (Clientes Al Día)</h3>
+            <div class="space-y-4">
+            ${datos.map((op, i) => {
+                const pct = parseFloat(op.tasa_al_dia_pct || 0);
+                const color = pct >= 30 ? 'emerald' : (pct >= 15 ? 'amber' : 'rose');
+                return `<div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <p class="font-black text-slate-800 text-sm">${i+1}. ${op.nombre}</p>
+                            <p class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Gestionó ${op.clientes_gestionados} clientes</p>
+                        </div>
+                        <span class="px-4 py-2 rounded-xl font-black text-[11px] uppercase bg-${color}-50 text-${color}-600">${pct.toFixed(1)}%</span>
+                    </div>
+                    <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                        <div class="bg-${color}-500 h-full rounded-full transition-all" style="width:${Math.min(pct,100)}%"></div>
+                    </div>
+                    <div class="grid grid-cols-3 gap-4 mt-4 text-[10px] font-bold text-slate-600">
+                        <div>🎯 Al Día: <span class="text-emerald-600">${op.al_dia_logrados}</span></div>
+                        <div>💬 Promesas: <span class="text-blue-600">${op.promesas}</span></div>
+                        <div>❌ No Responde: <span class="text-slate-600">${op.no_responde}</span></div>
+                    </div>
+                </div>`;
+            }).join('')}
+            </div>`;
+        }
+
+        if (tipo === 'matriz') {
+            const estados = datos.length > 0 ? Object.keys(datos[0]).filter(k => !['operador', 'operador_id', 'total'].includes(k)) : [];
+            html = `<h3 class="text-xl font-black text-slate-800 uppercase italic tracking-tighter mb-6">⚙️ Matriz Operador × Estado</h3>
+            <div class="overflow-x-auto custom-scroll"><table class="w-full text-sm border-collapse">
+                <thead class="bg-slate-900 text-white"><tr>
+                    <th class="px-4 py-3 text-left font-black text-[10px] tracking-widest">Operador</th>
+                    ${estados.map(e => `<th class="px-3 py-3 text-center font-black text-[9px] tracking-widest">${e.toUpperCase()}</th>`).join('')}
+                    <th class="px-4 py-3 text-center font-black text-[10px] tracking-widest bg-blue-600">TOTAL</th>
+                </tr></thead>
+                <tbody class="divide-y divide-slate-100">
+                ${datos.map(row => `<tr class="hover:bg-blue-50">
+                    <td class="px-4 py-3 font-bold text-slate-700 text-xs sticky left-0 bg-white z-10">${row.operador}</td>
+                    ${estados.map(e => `<td class="px-3 py-3 text-center font-bold ${row[e] > 0 ? 'bg-blue-50 text-blue-600' : 'text-slate-400'}">${row[e]}</td>`).join('')}
+                    <td class="px-4 py-3 text-center font-black bg-blue-100 text-blue-900">${row.total}</td>
+                </tr>`).join('')}
+                </tbody>
+            </table></div>`;
+        }
+
+        if (tipo === 'clientes') {
+            html = `<h3 class="text-xl font-black text-slate-800 uppercase italic tracking-tighter mb-6">👥 Top Clientes Más Gestionados</h3>
+            <div class="space-y-3">
+            ${datos.slice(0, 20).map((c) => `<div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition">
+                <div class="flex justify-between items-start mb-2">
+                    <div>
+                        <p class="font-black text-slate-800">${c.razon_social}</p>
+                        <p class="text-[9px] text-blue-600 font-bold uppercase">${c.legajo}</p>
+                    </div>
+                    <span class="px-3 py-1 rounded-full bg-blue-100 text-blue-700 font-black text-[9px] tracking-widest">👤 ${c.operadores_distintos} Op</span>
+                </div>
+                <div class="grid grid-cols-4 gap-3 text-[10px] font-bold text-slate-600">
+                    <div>📞 Gestiones: <span class="text-slate-800 font-black">${c.total_gestiones}</span></div>
+                    <div>💰 Vencido: <span class="text-rose-600">$${parseFloat(c.total_vencido).toLocaleString('es-AR')}</span></div>
+                    <div>⏳ Atraso: <span class="text-amber-600">${c.dias_atraso} días</span></div>
+                    <div>📊 Estado: <span class="text-slate-800 uppercase">${(c.estado_actual || 'pendiente').replace('_', ' ')}</span></div>
+                </div>
+            </div>`).join('')}
+            </div>`;
+        }
+
+        if (tipo === 'diario') {
+            html = `<h3 class="text-xl font-black text-slate-800 uppercase italic tracking-tighter mb-6">📅 Resumen Diario</h3>
+            <div class="overflow-x-auto custom-scroll"><table class="w-full text-sm">
+                <thead class="bg-slate-50 border-b text-slate-400 font-black uppercase text-[10px] tracking-widest"><tr>
+                    <th class="px-6 py-4 text-left">Fecha</th><th class="px-6 py-4 text-center">Gestiones</th>
+                    <th class="px-6 py-4 text-center">Operadores</th><th class="px-6 py-4 text-center">Promesas</th>
+                    <th class="px-6 py-4 text-center">Al Día</th><th class="px-6 py-4 text-center">No Responde</th>
+                    <th class="px-6 py-4 text-center">Otros</th>
+                </tr></thead>
+                <tbody class="divide-y divide-slate-100">
+                ${datos.map(d => {
+                    const otros = parseInt(d.no_corresponde||0)+parseInt(d.llamar||0)+parseInt(d.numero_baja||0)+parseInt(d.carta||0)+parseInt(d.otro||0);
+                    return `<tr class="hover:bg-blue-50/30">
+                        <td class="px-6 py-4 font-black text-slate-800">${d.fecha.split('-').reverse().join('/')}</td>
+                        <td class="px-6 py-4 text-center font-black text-blue-600">${d.total_gestiones}</td>
+                        <td class="px-6 py-4 text-center font-bold text-slate-600">${d.operadores_activos}</td>
+                        <td class="px-6 py-4 text-center font-bold text-emerald-600">${d.promesas||0}</td>
+                        <td class="px-6 py-4 text-center font-bold text-rose-600">${d.al_dia||0}</td>
+                        <td class="px-6 py-4 text-center font-bold text-amber-600">${d.no_responde||0}</td>
+                        <td class="px-6 py-4 text-center font-bold text-slate-600">${otros}</td>
+                    </tr>`;
+                }).join('')}
+                </tbody>
+            </table></div>`;
+        }
+
+        document.getElementById('rep-contenido').innerHTML = html;
+    }
+
+    function exportarReporte(formato) {
+        if (!datosReporteActual || (Array.isArray(datosReporteActual) && datosReporteActual.length === 0)) {
+            alert('Cargá un reporte primero.');
+            return;
+        }
+        const nombreArchivo = `reporte_${reporteActual}_${new Date().toISOString().split('T')[0]}`;
+        if (formato === 'json') {
+            const blob = new Blob([JSON.stringify(datosReporteActual, null, 2)], { type: 'application/json' });
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${nombreArchivo}.json`; a.click();
+        }
+        if (formato === 'csv') {
+            if (!Array.isArray(datosReporteActual)) { alert('Este reporte no puede exportarse a CSV.'); return; }
+            const headers = Object.keys(datosReporteActual[0] || {});
+            let contenido = headers.join(',') + '\n';
+            datosReporteActual.forEach(row => {
+                contenido += headers.map(h => { let v = row[h] ?? ''; if (typeof v === 'string' && v.includes(',')) v = `"${v}"`; return v; }).join(',') + '\n';
+            });
+            const blob = new Blob([contenido], { type: 'text/csv;charset=utf-8;' });
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${nombreArchivo}.csv`; a.click();
+        }
+    }
+
+
+
+    // ─────────────────────────────────────────────────────────────────
+    // FIN MÓDULO REPORTES
+    // ─────────────────────────────────────────────────────────────────
+    // ═══════════════════════════════════════════════════════════════════════════
+    // MÓDULO: MI RENDIMIENTO Y AGENDA
+    // ═══════════════════════════════════════════════════════════════════════════
+    async function cargarMiRendimiento() {
+        try {
+            // Rendimiento principal
+            const rRes = await fetch('api_mi_rendimiento.php?action=rendimiento');
+            const rData = await rRes.json();
+            if (rData.success) {
+                document.getElementById('rm-asignados').innerText = rData.total_asignados;
+                document.getElementById('rm-aldia').innerText = rData.al_dia;
+                document.getElementById('rm-promesas').innerText = rData.promesas_activas;
+                document.getElementById('rm-vencidas').innerText = rData.promesas_vencidas;
+                document.getElementById('rm-posicion').innerText = '#' + rData.mi_posicion;
+                document.getElementById('rm-total-ops').innerText = 'de ' + rData.total_operadores;
+                
+                if (rData.mi_posicion === 1) {
+                    document.getElementById('rm-distancia').innerText = "¡Sos el Líder! 🥇";
+                    document.getElementById('rm-barra').style.width = "100%";
+                } else {
+                    document.getElementById('rm-distancia').innerText = `A ${rData.diferencia_lider} gest. de ${rData.nombre_lider}`;
+                    const pct = rData.max_gestiones_mes > 0 ? (rData.mi_gestiones_mes / rData.max_gestiones_mes) * 100 : 0;
+                    document.getElementById('rm-barra').style.width = pct + "%";
+                }
+            }
+
+            // Ranking
+            const kRes = await fetch('api_mi_rendimiento.php?action=ranking_publico');
+            const kData = await kRes.json();
+            if (kData.success) {
+                const html = kData.data.map((u, i) => {
+                    const medal = i === 0 ? '🥇' : (i === 1 ? '🥈' : (i === 2 ? '🥉' : ''));
+                    const color = u.es_yo ? 'bg-blue-50 border-blue-200 shadow-sm' : 'bg-slate-50 border-transparent';
+                    const activeBg = u.es_yo ? 'text-blue-600' : 'text-slate-800';
+                    return `
+                        <div class="flex items-center justify-between p-3 rounded-xl border ${color}">
+                            <div class="flex items-center gap-3">
+                                <span class="font-black ${i<3?'text-xl':'text-xs text-slate-400 w-5 text-center'}">${medal || ('#'+(i+1))}</span>
+                                <div>
+                                    <p class="font-bold text-xs ${activeBg} ${u.es_yo?'uppercase tracking-widest':''}">${u.nombre} ${u.es_yo?'(VOS)':''}</p>
+                                    <p class="text-[9px] font-black uppercase text-slate-400">🔥 ${u.gestiones} Gestiones</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                document.getElementById('rm-ranking-body').innerHTML = html;
+            }
+
+            // Agenda Diaria
+            const aRes = await fetch('api_mi_rendimiento.php?action=agenda');
+            const aData = await aRes.json();
+            if (aData.success) {
+                if (aData.count === 0) {
+                    document.getElementById('rm-agenda-body').innerHTML = `<tr><td colspan="5" class="py-10 text-center text-[10px] font-black text-slate-400 uppercase">Agenda al día. No hay pendientes por hoy. 🎉</td></tr>`;
+                    // Limpiar notificaciones
+                    document.getElementById('noti-badge').classList.add('hidden');
+                } else {
+                    const html = aData.data.map(d => {
+                        let colorPri = ''; let alertPri = '';
+                        if (d.tipo_agenda === 'vencida') { colorPri = 'bg-rose-500'; alertPri = 'VENCIDA'; }
+                        else if (d.tipo_agenda === 'hoy') { colorPri = 'bg-amber-500'; alertPri = 'HOY'; }
+                        else if (d.tipo_agenda === 'llamar') { colorPri = 'bg-blue-500'; alertPri = 'LLAMAR'; }
+                        
+                        return `<tr class="hover:bg-blue-50/30 transition">
+                            <td class="px-4 py-3"><span class="px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-widest text-white shadow-sm ${colorPri}">${alertPri}</span></td>
+                            <td class="px-4 py-3 font-bold text-slate-700 text-xs">${d.razon_social}</td>
+                            <td class="px-4 py-3 text-rose-600 font-bold">$${parseFloat(d.total_vencido).toLocaleString('es-AR')}</td>
+                            <td class="px-4 py-3 text-slate-600 font-bold text-xs">${(d.fecha_promesa && d.fecha_promesa.includes('-')) ? d.fecha_promesa.split('-').reverse().join('/') : '-'}</td>
+                            <td class="px-4 py-3 text-center">
+                                <button onclick="editarGestionLegajo('${d.legajo}')" class="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-[9px] font-black uppercase shadow-sm hover:bg-blue-700 transition cursor-pointer">Gestionar</button>
+                            </td>
+                        </tr>`;
+                    }).join('');
+                    document.getElementById('rm-agenda-body').innerHTML = html;
+                    
+                    // Actualizar campanita (notificaciones)
+                    document.getElementById('noti-badge').classList.remove('hidden');
+                    document.getElementById('noti-badge').innerText = aData.count;
+                    document.getElementById('noti-count-text').innerText = `${aData.count} TAREAS`;
+                    
+                    const notiHtml = aData.data.slice(0, 10).map(d => {
+                        const safeFecha = (d.fecha_promesa && d.fecha_promesa.includes('-')) ? d.fecha_promesa.split('-').reverse().join('/') : 'Sin fecha';
+                        return `
+                        <div class="px-5 py-3 hover:bg-slate-50 cursor-pointer transition border-l-4 ${d.tipo_agenda==='vencida'?'border-l-rose-500':(d.tipo_agenda==='hoy'?'border-l-amber-500':'border-l-blue-500')}" onclick="editarGestionLegajo('${d.legajo}')">
+                            <p class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">${d.legajo}</p>
+                            <p class="font-bold text-slate-700 text-xs truncate">${d.razon_social}</p>
+                            <p class="text-[9px] font-bold text-rose-500 truncate mt-1">Gst: $${parseFloat(d.monto_promesa||0).toLocaleString('es-AR')} - ${safeFecha}</p>
+                        </div>
+                    `}).join('') + `<div class="px-5 py-4 text-center bg-slate-50"><button onclick="switchTab('rendimiento')" class="text-[9px] font-black uppercase tracking-widest text-blue-600 hover:underline">Ver agenda completa</button></div>`;
+                    
+                    document.getElementById('noti-list').innerHTML = notiHtml;
+                }
+            }
+
+        } catch (e) {
+            console.error("Error cargarMiRendimiento: ", e);
+        }
+    }
+    
+    // Función auxiliar para abrir la gestión desde la agenda / notificaciones
+    async function editarGestionLegajo(legajo) {
+        if(document.getElementById('noti-dropdown')) {
+            document.getElementById('noti-dropdown').classList.add('hidden');
+        }
+        
+        // Simplemente aprovechamos la función que ya existe y que está súper probada,
+        // esto abre el modal sobre la misma pestaña sin hacer recargas pesadas.
+        await abrirClientePorLegajo(legajo);
+    }
+    
+    // Auto-cargar Mi Rendimiento al inicio usando un retraso leve
+    setTimeout(() => {
+        cargarMiRendimiento();
+    }, 1000);
+
 </script>
 <?php endif; ?>
 </body>
