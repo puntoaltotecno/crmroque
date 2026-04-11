@@ -1154,7 +1154,7 @@ const load = async () => {
         // Teléfonos: genera un botón WhatsApp independiente por cada número
         const telefonos = c.telefonos || '';
         const operadorNombre = <?= json_encode($nombre_usuario) ?>;
-        const mensaje = `Hola, mi nombre es ${operadorNombre}. Me comunico de Landy Confort para informarle que tiene cuotas atrasadas vencidas, lo esperamos en breve.`;
+        const mensaje = `Hola, mi nombre es ${operadorNombre}. Me comunico de Landy Confort para informarle que tiene cuotas vencidas, lo esperamos en breve.`;
         const msgEnc = encodeURIComponent(mensaje);
         const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
         const waBase = isMobile ? 'https://api.whatsapp.com/send' : 'https://web.whatsapp.com/send';
