@@ -104,8 +104,8 @@ try {
         
         // Calcular métrica de efectividad
         foreach ($datos as &$op) {
-            $op['efectividad_pct'] = $op['clientes_gestionados'] > 0 
-                ? round(($op['promesas_logradas'] / $op['clientes_gestionados']) * 100) 
+            $op['efectividad_pct'] = $op['total_gestiones'] > 0 
+                ? round(($op['promesas_logradas'] / $op['total_gestiones']) * 100) 
                 : 0;
             $op['tasa_conversion_al_dia'] = $op['clientes_gestionados'] > 0 
                 ? round(($op['clientes_al_dia'] / $op['clientes_gestionados']) * 100) 

@@ -122,7 +122,16 @@ Línea de tiempo. La gestión con el ID más alto determina el "estado actual".
 
 ## 🚀 Historial de Cambios
 
+### v2.0 — WhatsApp, Validaciones y Métricas (11 de Abril, 2026)
+
+* 📱 **Integración WhatsApp por Número:** El modal de gestión de clientes ahora muestra un botón 💬 verde por **cada número de teléfono** registrado. Al hacer clic se abre WhatsApp (Web en PC, App en celular) con un mensaje predefinido firmado con el nombre del operador logueado. Formatea automáticamente el número al estándar argentino `+549XXXXXXXXXX`.
+* 🔒 **Validación de Fecha de Gestión:** Se corrigió un bug que permitía guardar fechas pasadas en los estados `Promesa de Pago` y `Llamar más tarde`. Ahora el campo de fecha tiene `min=hoy` en el frontend Y validación server-side en `api_gestion.php` para ambas acciones (insertar y editar). La fecha es siempre obligatoria para esos estados.
+* 📊 **Gestiones por Sucursal:** Se añadió una nueva columna **"Gestiones"** en la tabla "Métricas por Sucursal" del Tablero, mostrando el total histórico de interacciones por cada sucursal (excluyendo gestiones eliminadas).
+* 🎯 **Fix Efectividad Operadores (sin desbordamiento de 100%):** Se corrigió la fórmula de efectividad en `api_reportes.php` y en el Tablero. Ahora se calcula como `Promesas / Total Gestiones` en lugar de `Promesas / Clientes Únicos`, lo que evitaba que un solo cliente con múltiples promesas inflara el porcentaje por encima del 100%.
+* 🐛 **Fix `gestionados is not defined`:** Se corrigió un error de JavaScript en el Tablero causado por el renombrado de variable durante el fix de efectividad. La celda de "Gestionados" ahora muestra correctamente el total de gestiones del operador.
+
 ### v1.9 — Módulo Mi Rendimiento y Agenda (9 de Abril, 2026)
+
 * 📈 **Panel "Mi Rendimiento":** Se implementó un dashboard personal para operadores con una barra de progreso comparativa frente al líder mensual y un **Ranking de Operadores** (`api_mi_rendimiento.php`).
 * 📅 **Mi Agenda Hoy:** Se integró un listado interactivo con los clientes vencidos y a llamar del día. Los administradores y colaboradores ven la agenda global; los operadores ven solo las gestiones asignadas a ellos.
 * 💡 **Guía de Respuestas (Tips):** Se añadió un sistema dinámico en el modal de gestión (`index.php`) que ofrece consejos contextuales al operador según el estado seleccionado (ej. "No responde", "Promesa").

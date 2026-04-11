@@ -45,11 +45,30 @@ try {
     $ops = $pdo->query("SELECT u.nombre, 
         (SELECT COUNT(*) FROM asignaciones a WHERE a.usuario_id = u.id) as total_asignados,
         (SELECT COUNT(DISTINCT h.legajo) FROM gestiones_historial h WHERE h.usuario_id = u.id) as clientes_gestionados,
+        (SELECT COUNT(h3.id) FROM gestiones_historial h3 WHERE h3.usuario_id = u.id) as total_gestiones,
         (SELECT COUNT(DISTINCT h2.legajo) FROM gestiones_historial h2 WHERE h2.usuario_id = u.id AND h2.estado = 'promesa') as promesas_logradas
         FROM usuarios u WHERE u.rol IN ('operador', 'colaborador') ORDER BY total_asignados DESC")->fetchAll();
 
-    $sucursales = $pdo->query("SELECT IFNULL(NULLIF(TRIM(sucursal), ''), 'Central') as sucursal_nombre, COUNT(id) as total_clientes, SUM(total_vencido) as deuda_en_calle
-        FROM clientes GROUP BY sucursal_nombre ORDER BY deuda_en_calle DESC")->fetchAll();
+    $sucursales = $pdo->query("SELECT 
+            c_agg.sucursal_nombre,
+            c_agg.total_clientes,
+            c_agg.deuda_en_calle,
+            IFNULL(g_agg.total_gestiones, 0) as total_gestiones
+        FROM 
+            (SELECT IFNULL(NULLIF(TRIM(sucursal), ''), 'Central') as sucursal_nombre, 
+                    COUNT(id) as total_clientes, 
+                    SUM(total_vencido) as deuda_en_calle
+             FROM clientes 
+             GROUP BY sucursal_nombre) c_agg
+        LEFT JOIN 
+             (SELECT IFNULL(NULLIF(TRIM(c.sucursal), ''), 'Central') as sucursal_nombre, 
+                     COUNT(g.id) as total_gestiones
+              FROM gestiones_historial g 
+              JOIN clientes c ON g.legajo = c.legajo 
+              WHERE g.oculta = 0 OR g.oculta IS NULL
+              GROUP BY sucursal_nombre) g_agg
+        ON c_agg.sucursal_nombre = g_agg.sucursal_nombre
+        ORDER BY c_agg.deuda_en_calle DESC")->fetchAll();
 
     // Feed de gestiones (Filtro seguro para Hostinger)
     $feed = [];

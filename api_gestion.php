@@ -60,9 +60,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $monto_p = !empty($_POST['monto_promesa']) ? (float)$_POST['monto_promesa'] : 0;
             $obs     = trim($_POST['observacion'] ?? '');
 
-            if (in_array($estado, ['promesa', 'llamar']) && empty($fecha_p)) {
-                $nombre_estado = $estado === 'promesa' ? 'Promesa de Pago' : 'Llamar más tarde';
-                throw new Exception("La fecha es obligatoria para el estado '$nombre_estado'.");
+            if (in_array($estado, ['promesa', 'llamar'])) {
+                if (empty($fecha_p)) {
+                    $nombre_estado = $estado === 'promesa' ? 'Promesa de Pago' : 'Llamar más tarde';
+                    throw new Exception("La fecha es obligatoria para el estado '$nombre_estado'.");
+                }
+                if ($fecha_p < date('Y-m-d')) {
+                    throw new Exception("La fecha no puede ser anterior a hoy.");
+                }
             }
 
             $stmt = $pdo->prepare("SELECT * FROM gestiones_historial WHERE id = ?");
@@ -125,9 +130,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             throw new Exception("El cliente no tiene legajo. No se puede guardar la gestión.");
         }
 
-        if (in_array($estado, ['promesa', 'llamar']) && empty($fecha_p)) {
-            $nombre_estado = $estado === 'promesa' ? 'Promesa de Pago' : 'Llamar más tarde';
-            throw new Exception("La fecha es obligatoria para el estado '$nombre_estado'.");
+        if (in_array($estado, ['promesa', 'llamar'])) {
+            if (empty($fecha_p)) {
+                $nombre_estado = $estado === 'promesa' ? 'Promesa de Pago' : 'Llamar más tarde';
+                throw new Exception("La fecha es obligatoria para el estado '$nombre_estado'.");
+            }
+            if ($fecha_p < date('Y-m-d')) {
+                throw new Exception("La fecha no puede ser anterior a hoy.");
+            }
         }
 
         $stmt_check = $pdo->prepare("SELECT estado FROM gestiones_historial WHERE legajo = ? ORDER BY id DESC LIMIT 1");

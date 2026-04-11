@@ -181,11 +181,12 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
                                     <tr>
                                         <th class="px-6 py-4 text-left">Sucursal</th>
                                         <th class="px-6 py-4 text-center">Total Clientes</th>
+                                        <th class="px-6 py-4 text-center">Gestiones</th>
                                         <th class="px-6 py-4 text-right">En Calle (Deuda Activa)</th>
                                     </tr>
                                 </thead>
                                 <tbody id="listaSucursales" class="divide-y divide-slate-100">
-                                    <tr><td colspan="3" class="text-center py-6 text-slate-400 font-bold text-xs uppercase tracking-widest">Cargando...</td></tr>
+                                    <tr><td colspan="4" class="text-center py-6 text-slate-400 font-bold text-xs uppercase tracking-widest">Cargando...</td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -556,7 +557,12 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
                 </div>
 
                 <div class="grid grid-cols-2 gap-6 mb-8 text-[11px] font-bold text-slate-500 bg-slate-50 p-6 rounded-3xl border border-slate-100">
-                    <div class="space-y-3"><p class="flex gap-2">📍 <span id="mDomicilio" class="text-slate-800"></span></p><p class="flex gap-2">📞 <span id="mTelefonos" class="text-slate-800"></span></p></div>
+                    <div class="space-y-3">
+                        <p class="flex gap-2">📍 <span id="mDomicilio" class="text-slate-800"></span></p>
+                        <div id="mWALinks" class="flex flex-wrap items-center gap-2">
+                            <span class="text-slate-400">📞</span>
+                        </div>
+                    </div>
                     <div class="space-y-3"><p>Doc: <span id="mDocumento" class="text-slate-800"></span></p><p>Último Pago: <span id="mUltimo" class="text-slate-800"></span></p></div>
                 </div>
 
@@ -582,7 +588,7 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
                             <option value="otro">Otro</option>
                         </select>
                         <input type="number" step="0.01" name="monto_promesa" id="mMon" placeholder="Monto Acuerdo" class="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none">
-                        <input type="date" name="fecha_promesa" id="mFec" class="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none transition-colors">
+                        <input type="date" name="fecha_promesa" id="mFec" class="p-4 bg-rose-50 border border-rose-300 rounded-2xl text-sm font-bold outline-none transition-colors" required="true" min="<?= date('Y-m-d') ?>">
                     </div>
                     <!-- TIPS CONTEXTUALES -->
                     <div id="tips-estado" class="hidden bg-blue-50 border border-blue-100 p-4 rounded-xl text-xs text-blue-800 mb-4 transition-all duration-300">
@@ -801,7 +807,7 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
         if (!canAssign) return;
         try {
             document.getElementById('listaDashboard').innerHTML = `<tr><td colspan="5" class="text-center py-10 text-slate-400 font-bold text-xs uppercase tracking-widest">Cargando métricas...</td></tr>`;
-            document.getElementById('listaSucursales').innerHTML = `<tr><td colspan="3" class="text-center py-6 text-slate-400 font-bold text-xs uppercase tracking-widest">Cargando...</td></tr>`;
+            document.getElementById('listaSucursales').innerHTML = `<tr><td colspan="4" class="text-center py-6 text-slate-400 font-bold text-xs uppercase tracking-widest">Cargando...</td></tr>`;
             document.getElementById('feedGestiones').innerHTML = `<p class="text-center text-slate-500 text-xs font-bold mt-10 uppercase tracking-widest">Cargando feed en vivo...</p>`;
             
             const res = await fetch(api_dashboard);
@@ -828,26 +834,28 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
                 if (document.getElementById('listaSucursales') && data.sucursales) {
                     document.getElementById('listaSucursales').innerHTML = data.sucursales.map(s => {
                         let monto = `$${parseFloat(s.deuda_en_calle || 0).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                        let gestiones = s.total_gestiones || 0;
                         return `<tr class="hover:bg-blue-50/50 transition border-b border-slate-50">
                             <td class="px-6 py-4 font-black text-slate-800 uppercase text-[11px] tracking-widest">${s.sucursal_nombre}</td>
                             <td class="px-6 py-4 text-center font-bold text-slate-500">${s.total_clientes}</td>
+                            <td class="px-6 py-4 text-center font-bold text-blue-600">${gestiones}</td>
                             <td class="px-6 py-4 text-right font-black text-rose-600 bg-rose-50/30">${monto}</td>
                         </tr>`;
-                    }).join('') || `<tr><td colspan="3" class="text-center py-6 text-slate-400 font-bold text-xs uppercase tracking-widest">Sin datos</td></tr>`;
+                    }).join('') || `<tr><td colspan="4" class="text-center py-6 text-slate-400 font-bold text-xs uppercase tracking-widest">Sin datos</td></tr>`;
                 }
 
                 if (document.getElementById('listaDashboard') && data.data) {
                     document.getElementById('listaDashboard').innerHTML = data.data.map(op => {
                         const asignados = parseInt(op.total_asignados) || 0;
-                        const gestionados = parseInt(op.clientes_gestionados) || 0;
+                        const total_gestiones = parseInt(op.total_gestiones) || 0;
                         const promesas = parseInt(op.promesas_logradas) || 0;
-                        const efectividad = gestionados > 0 ? Math.round((promesas / gestionados) * 100) : 0;
+                        const efectividad = total_gestiones > 0 ? Math.round((promesas / total_gestiones) * 100) : 0;
                         const colorEfectividad = efectividad >= 30 ? 'text-emerald-500' : (efectividad >= 15 ? 'text-amber-500' : 'text-rose-500');
                         
                         return `<tr class="hover:bg-blue-50/50 transition border-b border-slate-50">
                             <td class="px-6 py-4 font-black text-slate-800 text-xs">${op.nombre || 'Desconocido'}</td>
                             <td class="px-6 py-4 text-center font-bold text-slate-600">${asignados}</td>
-                            <td class="px-6 py-4 text-center font-bold text-blue-600">${gestionados}</td>
+                            <td class="px-6 py-4 text-center font-bold text-blue-600">${total_gestiones}</td>
                             <td class="px-6 py-4 text-center font-bold text-emerald-600">${promesas}</td>
                             <td class="px-6 py-4 text-center font-black ${colorEfectividad}">${efectividad}%</td>
                         </tr>`;
@@ -1143,7 +1151,48 @@ const load = async () => {
         document.getElementById('mDias').innerText = c.dias_atraso || '0'; 
         document.getElementById('mCuotas').innerText = c.c_cuotas || '0';
         document.getElementById('mDomicilio').innerText = c.domicilio || '-'; 
-        document.getElementById('mTelefonos').innerText = c.telefonos || '-';
+        // Teléfonos: genera un botón WhatsApp independiente por cada número
+        const telefonos = c.telefonos || '';
+        const operadorNombre = <?= json_encode($nombre_usuario) ?>;
+        const mensaje = `Hola, mi nombre es ${operadorNombre}. Me comunico de Landy Confort para informarle que tiene cuotas atrasadas vencidas, lo esperamos en breve.`;
+        const msgEnc = encodeURIComponent(mensaje);
+        const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
+        const waBase = isMobile ? 'https://api.whatsapp.com/send' : 'https://web.whatsapp.com/send';
+        // Separadores: guión normal, guión largo, barra, coma, punto y coma
+        const numerosRaw = telefonos.split(/[-–\/,;]+/).map(n => n.trim()).filter(n => n.length > 0);
+        const waContainer = document.getElementById('mWALinks');
+        waContainer.innerHTML = '<span class="text-slate-400">📞</span>'; // reset
+        if (numerosRaw.length === 0 || telefonos === '') {
+            waContainer.innerHTML += '<span class="text-slate-800 font-bold">-</span>';
+        } else {
+            numerosRaw.forEach(raw => {
+                const soloDigitos = raw.replace(/\D/g, '');
+                // Mostrar el número como texto
+                const spanNro = document.createElement('span');
+                spanNro.className = 'text-slate-800 font-bold';
+                spanNro.textContent = raw;
+                waContainer.appendChild(spanNro);
+                // Si tiene suficientes dígitos, agregar botón WA
+                if (soloDigitos.length >= 8) {
+                    let nroLimpio = soloDigitos.replace(/^0/, '');
+                    if (!nroLimpio.startsWith('549')) nroLimpio = '549' + nroLimpio;
+                    const btn = document.createElement('a');
+                    btn.href = `${waBase}?phone=${nroLimpio}&text=${msgEnc}`;
+                    btn.target = '_blank';
+                    btn.title = `WhatsApp ${raw}`;
+                    btn.className = 'inline-flex items-center gap-1 bg-emerald-500 hover:bg-emerald-600 text-white text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full transition';
+                    btn.innerHTML = '💬';
+                    waContainer.appendChild(btn);
+                }
+                // Separador entre números
+                if (raw !== numerosRaw[numerosRaw.length - 1]) {
+                    const sep = document.createElement('span');
+                    sep.className = 'text-slate-300 font-bold';
+                    sep.textContent = '•';
+                    waContainer.appendChild(sep);
+                }
+            });
+        }
         document.getElementById('mDocumento').innerText = c.nro_documento || '-';
         document.getElementById('mUltimo').innerText = c.ultimo_pago?.split('-').reverse().join('/') || 'Nunca';
         document.getElementById('mVenc').innerText = c.vencimiento?.split('-').reverse().join('/') || '-';
