@@ -82,20 +82,28 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
                     <div class="bg-blue-600 w-10 h-10 rounded-xl flex items-center justify-center text-white font-black italic">R</div>
                     <h2 class="text-xl font-extrabold text-slate-800 italic tracking-tighter uppercase">CRM.ROQUE</h2>
                 </div>
-                <nav class="flex gap-8 border-b-0 hidden md:flex">
+                <!-- Navegación Desktop -->
+                <nav class="hidden md:flex gap-8 border-b-0">
                     <?php if($can_assign): ?>
-                    <button onclick="switchTab('dashboard')" id="btn-dashboard" class="text-[11px] font-black uppercase tracking-widest text-slate-400 transition pb-1">Tablero</button>
+                    <button onclick="switchTab('dashboard')" id="btn-dashboard" class="text-[11px] font-black uppercase tracking-widest text-slate-400 transition pb-1 hover:text-slate-600">Tablero</button>
                     <?php endif; ?>
                     <button onclick="switchTab('rendimiento')" id="btn-rendimiento" class="text-[11px] font-black uppercase tracking-widest text-slate-400 transition pb-1 hover:text-slate-600">Mi Rendimiento</button>
                     <button onclick="switchTab('clientes')" id="btn-clientes" class="text-[11px] font-black uppercase tracking-widest text-slate-400 transition pb-1 hover:text-slate-600">Cartera Activa</button>
                     <?php if($can_assign): ?>
-                    <button onclick="switchTab('usuarios')" id="btn-usuarios" class="text-[11px] font-black uppercase tracking-widest text-slate-400 transition pb-1">Equipo</button>
-                    <button onclick="switchTab('reportes')" id="btn-reportes" class="text-[11px] font-black uppercase tracking-widest text-slate-400 transition pb-1">Reportes</button>
+                    <button onclick="switchTab('usuarios')" id="btn-usuarios" class="text-[11px] font-black uppercase tracking-widest text-slate-400 transition pb-1 hover:text-slate-600">Equipo</button>
+                    <button onclick="switchTab('reportes')" id="btn-reportes" class="text-[11px] font-black uppercase tracking-widest text-slate-400 transition pb-1 hover:text-slate-600">Reportes</button>
                     <?php endif; ?>
                 </nav>
             </div>
             
-            <div class="flex items-center gap-6">
+            <div class="flex items-center gap-4 md:gap-6">
+                <!-- Botón de Hamburguesa Mobile -->
+                <button onclick="toggleMenu()" class="md:hidden flex items-center justify-center w-10 h-10 bg-slate-100 rounded-xl text-slate-600 hover:bg-slate-200 transition active:scale-95" aria-label="Abrir menú">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
+                    </svg>
+                </button>
+
                 <!-- Botón de Comunicados -->
                 <?php if($can_assign): ?>
                 <button onclick="abrirModalComunicado()" class="text-2xl hover:scale-110 transition origin-center" title="Lanzar Aviso a Operadores">📣</button>
@@ -126,6 +134,82 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
             </div>
         </div>
     </header>
+
+    <!-- MENÚ DRAWER (MOBILE) -->
+    <div id="mobileMenu" class="fixed inset-0 z-50 hidden md:hidden">
+        <!-- Overlay oscuro -->
+        <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity opacity-0" id="mobileMenuOverlay" onclick="toggleMenu()"></div>
+        
+        <!-- Contenedor del Drawer -->
+        <div class="absolute top-0 right-0 w-64 h-full bg-white shadow-2xl transform translate-x-full transition-transform duration-300 flex flex-col" id="mobileMenuDrawer">
+            <div class="p-6 border-b flex justify-between items-center bg-slate-50">
+                <div class="flex items-center gap-2">
+                    <div class="bg-blue-600 w-8 h-8 rounded-lg flex items-center justify-center text-white font-black italic text-sm">R</div>
+                    <h3 class="text-xs font-black uppercase tracking-widest text-slate-800">Navegación</h3>
+                </div>
+                <button onclick="toggleMenu()" class="text-slate-400 hover:text-rose-500 w-8 h-8 flex justify-center items-center rounded-full bg-slate-200 shadow-inner group">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            
+            <nav class="flex-1 flex flex-col p-4 gap-2 overflow-y-auto">
+                <?php if($can_assign): ?>
+                <button onclick="switchTab('dashboard'); toggleMenu();" class="flex items-center gap-4 p-4 rounded-2xl text-left font-black text-xs uppercase tracking-widest text-slate-600 hover:bg-blue-50 focus:bg-blue-50 focus:text-blue-600 hover:text-blue-600 transition h-14">
+                    <span class="text-xl">📊</span> Tablero
+                </button>
+                <?php endif; ?>
+                <button onclick="switchTab('rendimiento'); toggleMenu();" class="flex items-center gap-4 p-4 rounded-2xl text-left font-black text-xs uppercase tracking-widest text-slate-600 hover:bg-blue-50 focus:bg-blue-50 focus:text-blue-600 hover:text-blue-600 transition h-14">
+                    <span class="text-xl">🏅</span> Mi Rendimiento
+                </button>
+                <button onclick="switchTab('clientes'); toggleMenu();" class="flex items-center gap-4 p-4 rounded-2xl text-left font-black text-xs uppercase tracking-widest text-slate-600 hover:bg-blue-50 focus:bg-blue-50 focus:text-blue-600 hover:text-blue-600 transition h-14">
+                    <span class="text-xl">👥</span> Cartera Activa
+                </button>
+                <?php if($can_assign): ?>
+                <button onclick="switchTab('usuarios'); toggleMenu();" class="flex items-center gap-4 p-4 rounded-2xl text-left font-black text-xs uppercase tracking-widest text-slate-600 hover:bg-blue-50 focus:bg-blue-50 focus:text-blue-600 hover:text-blue-600 transition h-14">
+                    <span class="text-xl">👨‍💻</span> Equipo
+                </button>
+                <button onclick="switchTab('reportes'); toggleMenu();" class="flex items-center gap-4 p-4 rounded-2xl text-left font-black text-xs uppercase tracking-widest text-slate-600 hover:bg-blue-50 focus:bg-blue-50 focus:text-blue-600 hover:text-blue-600 transition h-14">
+                    <span class="text-xl">📈</span> Reportes
+                </button>
+                <?php endif; ?>
+            </nav>
+            <div class="p-6 border-t bg-slate-50">
+                <a href="?logout=1" class="flex items-center justify-center gap-2 p-4 rounded-2xl font-black text-xs uppercase tracking-widest text-rose-600 bg-rose-50 hover:bg-rose-100 transition w-full h-14">
+                    <span class="text-lg">🚪</span> Salir
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- BOTTOM NAVIGATION (OPCIONAL/IDEAL MOBILE UX) -->
+    <nav class="md:hidden fixed bottom-0 left-0 w-full bg-white/95 backdrop-blur-md border-t border-slate-200 z-40 flex justify-around items-center px-1 py-2 pb-safe shadow-[0_-5px_15px_rgba(0,0,0,0.05)]">
+        <?php if($can_assign): ?>
+        <button onclick="switchTab('dashboard')" class="flex flex-col items-center justify-center w-14 h-12 text-slate-400 hover:text-blue-600 transition">
+            <span class="text-lg mb-1">📊</span>
+            <span class="text-[8px] font-black text-center uppercase tracking-tighter w-full truncate">Tablero</span>
+        </button>
+        <?php endif; ?>
+        <button onclick="switchTab('rendimiento')" class="flex flex-col items-center justify-center w-14 h-12 text-slate-400 hover:text-blue-600 transition">
+            <span class="text-lg mb-1">🏅</span>
+            <span class="text-[8px] font-black text-center uppercase tracking-tighter w-full truncate">Rendim.</span>
+        </button>
+        <button onclick="switchTab('clientes')" class="flex flex-col items-center justify-center w-14 h-12 text-slate-400 hover:text-blue-600 transition">
+            <span class="text-lg mb-1">👥</span>
+            <span class="text-[8px] font-black text-center uppercase tracking-tighter w-full truncate">Cartera</span>
+        </button>
+        <?php if($can_assign): ?>
+        <button onclick="switchTab('usuarios')" class="flex flex-col items-center justify-center w-14 h-12 text-slate-400 hover:text-blue-600 transition">
+            <span class="text-lg mb-1">👨‍💻</span>
+            <span class="text-[8px] font-black text-center uppercase tracking-tighter w-full truncate">Equipo</span>
+        </button>
+        <button onclick="switchTab('reportes')" class="flex flex-col items-center justify-center w-14 h-12 text-slate-400 hover:text-blue-600 transition">
+            <span class="text-lg mb-1">📈</span>
+            <span class="text-[8px] font-black text-center uppercase tracking-tighter w-full truncate">Reportes</span>
+        </button>
+        <?php endif; ?>
+    </nav>
 
     <main class="max-w-7xl mx-auto p-8 space-y-10 pb-32">
         <div class="grid grid-cols-1 md:grid-cols-<?= $rol_usuario === 'operador' ? '2' : '4' ?> gap-6">
@@ -182,6 +266,7 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
                                         <th class="px-6 py-4 text-left">Sucursal</th>
                                         <th class="px-6 py-4 text-center">Total Clientes</th>
                                         <th class="px-6 py-4 text-center">Gestiones</th>
+                                        <th class="px-6 py-4 text-center">% Gestionados</th>
                                         <th class="px-6 py-4 text-right">En Calle (Deuda Activa)</th>
                                     </tr>
                                 </thead>
@@ -201,6 +286,7 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
                                         <th class="px-6 py-5 text-left">Operador</th>
                                         <th class="px-6 py-5 text-center">Asignados</th>
                                         <th class="px-6 py-5 text-center">Gestionados</th>
+                                        <th class="px-6 py-5 text-center">% Gestionados</th>
                                         <th class="px-6 py-5 text-center">Promesas Logradas</th>
                                         <th class="px-6 py-5 text-center">Efectividad</th>
                                     </tr>
@@ -229,7 +315,7 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
         <section id="sec-clientes" class="hidden space-y-6">
             <div class="flex flex-col lg:flex-row justify-between items-center gap-4">
                 <div class="flex flex-1 flex-col md:flex-row gap-3 w-full">
-                    <input type="text" id="search" placeholder="Buscar por Legajo, Razón o Doc..." class="flex-1 px-6 py-4 bg-white border border-slate-200 rounded-2xl text-sm font-semibold outline-none shadow-sm focus:ring-4 focus:ring-blue-500/10 transition">
+                    <input type="text" id="search" placeholder="Buscar por Legajo, Razón, Doc o Tel..." class="flex-1 px-6 py-4 bg-white border border-slate-200 rounded-2xl text-sm font-semibold outline-none shadow-sm focus:ring-4 focus:ring-blue-500/10 transition">
                     
                     <select id="filter-estado" onchange="load(); stats();" class="px-5 py-4 bg-white border border-slate-200 rounded-2xl text-xs font-black uppercase outline-none shadow-sm cursor-pointer hover:bg-slate-50">
                         <option value="">Todos los Estados</option>
@@ -273,6 +359,27 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
                 </div>
             </div>
             
+            <!-- Toggles for contact buttons -->
+            <div class="flex flex-wrap items-center gap-4 bg-slate-50 px-6 py-3 border border-slate-100 rounded-3xl mb-4">
+                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Botones Visibles por Defecto:</span>
+                <label class="flex items-center space-x-2 cursor-pointer">
+                    <input type="checkbox" id="toggleWaWeb" class="form-checkbox h-4 w-4 text-emerald-600 rounded" onchange="saveContactToggles()">
+                    <span class="text-[10px] font-bold uppercase text-slate-700 flex items-center gap-1">🌐 WA Web</span>
+                </label>
+                <label class="flex items-center space-x-2 cursor-pointer">
+                    <input type="checkbox" id="toggleWaApp" class="form-checkbox h-4 w-4 text-teal-600 rounded" onchange="saveContactToggles()">
+                    <span class="text-[10px] font-bold uppercase text-slate-700 flex items-center gap-1">💻 WA PC/App</span>
+                </label>
+                <label class="flex items-center space-x-2 cursor-pointer">
+                    <input type="checkbox" id="toggleLlamar" class="form-checkbox h-4 w-4 text-blue-600 rounded" onchange="saveContactToggles()">
+                    <span class="text-[10px] font-bold uppercase text-slate-700 flex items-center gap-1">📞 Llamar</span>
+                </label>
+                <label class="flex items-center space-x-2 cursor-pointer">
+                    <input type="checkbox" id="toggleSms" class="form-checkbox h-4 w-4 text-violet-600 rounded" onchange="saveContactToggles()">
+                    <span class="text-[10px] font-bold uppercase text-slate-700 flex items-center gap-1">✉️ SMS</span>
+                </label>
+            </div>
+
             <div class="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden relative">
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm">
@@ -281,12 +388,12 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
                                 <?php if($can_assign): ?>
                                 <th class="pl-8 pr-2 py-5 text-left"><input type="checkbox" onchange="toggleSelectAll(event)" class="w-4 h-4 rounded text-blue-600 bg-slate-100 border-slate-300"></th>
                                 <?php endif; ?>
-                                <th class="<?= $can_assign ? 'px-2' : 'px-8' ?> py-5 text-left">Legajo / Doc</th>
-                                <th class="px-8 py-5 text-left">Razón Social / Sucursal</th>
-                                <th class="px-8 py-5 text-center">Cuotas / Atraso</th>
-                                <th class="px-8 py-5 text-right">Vencido</th>
-                                <th class="px-8 py-5 text-center">Estado / Op</th>
-                                <th class="px-8 py-5 text-center">Acción</th>
+                                <th class="<?= $can_assign ? 'px-2' : 'px-8' ?> py-5 text-left">Datos / Monto</th>
+                                <th class="px-8 py-5 text-left">Razón Social / Estado</th>
+                                <th class="px-8 py-5 text-center hidden md:table-cell">Cuotas / Atraso</th>
+                                <th class="px-8 py-5 text-right hidden md:table-cell">Vencido</th>
+                                <th class="px-8 py-5 text-center hidden md:table-cell">Estado / Op</th>
+                                <th class="px-8 py-5 text-center hidden md:table-cell">Acción</th>
                             </tr>
                         </thead>
                         <tbody id="lista" class="divide-y divide-slate-100"></tbody>
@@ -528,86 +635,125 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
     </div>
     <?php endif; ?>
 
-    <div id="modal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-md hidden items-center justify-center p-4 z-50" onclick="closeModal()">
-        <div class="bg-white rounded-[3rem] w-full max-w-7xl shadow-2xl overflow-hidden flex flex-col md:flex-row h-[90vh] scale-95 transition-all duration-300" id="mContent" onclick="event.stopPropagation()">
-            <div class="w-full md:w-3/5 p-10 border-r flex flex-col bg-white overflow-y-auto custom-scroll">
-                <div class="flex justify-between items-start mb-6">
-                    <div>
-                        <h3 id="mRazon" class="text-3xl font-black text-slate-800 uppercase tracking-tighter leading-none mb-2"></h3>
-                        <div class="flex items-center gap-3 mt-1">
+    <div id="modal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-md hidden items-center justify-center p-0 md:p-4 z-50" onclick="closeModal()">
+        <!-- Contenedor principal: fullscreen en mobile, card en desktop -->
+        <div class="bg-white w-full h-full md:rounded-[3rem] md:max-w-7xl md:h-[90vh] shadow-2xl overflow-hidden flex flex-col md:scale-100 md:opacity-100 transition-all duration-300" id="mContent" onclick="event.stopPropagation()">
+
+            <!-- ======================================================= -->
+            <!-- CABECERA PERSISTENTE (Común para ambos paneles)        -->
+            <!-- ======================================================= -->
+            <div class="px-5 pt-5 pb-3 md:px-10 md:pt-8 border-b border-slate-100 shrink-0 bg-white">
+                <!-- Fila superior: nombre + botón cerrar -->
+                <div class="flex justify-between items-start gap-2 mb-2">
+                    <div class="flex-1 min-w-0">
+                        <h3 id="mRazon" class="text-xl md:text-3xl font-black text-slate-800 uppercase tracking-tighter leading-tight truncate"></h3>
+                        <div class="flex flex-wrap items-center gap-2 mt-1">
                             <p id="mLegajo" class="text-blue-600 font-black text-[10px] uppercase tracking-widest"></p>
-                            <span id="mWarningOtroOp" class="hidden bg-amber-100 text-amber-700 text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-lg border border-amber-200"></span>
+                            <span id="mWarningOtroOp" class="hidden bg-amber-100 text-amber-700 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-lg border border-amber-200"></span>
                         </div>
                     </div>
-                    <div class="flex flex-col items-end gap-2">
-                        <span id="mSucursal" class="bg-slate-100 px-4 py-2 rounded-xl text-[10px] font-black uppercase text-slate-500 italic"></span>
-                        <?php if($can_assign): ?>
-                        <select id="mAsignacion" onchange="cambiarAsignacion(this.value)" class="bg-blue-50 text-blue-700 px-4 py-2 rounded-xl text-[10px] font-black uppercase outline-none border border-blue-100 text-right appearance-none cursor-pointer">
-                            <option value="">👤 Sin Asignar</option>
-                        </select>
-                        <?php endif; ?>
+                    <div class="flex items-start gap-2 shrink-0">
+                        <span id="mSucursal" class="bg-slate-100 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase text-slate-500 italic hidden md:inline"></span>
+                        <button onclick="closeModal()" class="text-slate-400 hover:text-slate-800 w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-lg shrink-0">✕</button>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                    <div class="bg-slate-50 p-5 rounded-3xl border border-slate-100"><p class="text-[9px] font-black text-slate-400 uppercase mb-1">Vencido</p><h5 id="mTotal" class="text-lg font-black text-slate-800"></h5></div>
-                    <div class="bg-rose-50 p-5 rounded-3xl border border-rose-100"><p class="text-[9px] font-black text-rose-400 uppercase mb-1">Días Atraso</p><h5 id="mDias" class="text-lg font-black text-rose-600"></h5></div>
-                    <div class="bg-slate-50 p-5 rounded-3xl border border-slate-100"><p class="text-[9px] font-black text-slate-400 uppercase mb-1">Cuotas</p><h5 id="mCuotas" class="text-lg font-black text-slate-800"></h5></div>
-                    <div class="bg-slate-50 p-5 rounded-3xl border border-slate-100"><p class="text-[9px] font-black text-slate-400 uppercase mb-1">Vto</p><h5 id="mVenc" class="text-lg font-black text-slate-800"></h5></div>
+                <!-- Sucursal + Asignación en mobile (compacta) -->
+                <div class="flex items-center justify-between gap-2 md:hidden">
+                    <span id="mSucursalMobile" class="bg-slate-100 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase text-slate-500 italic"></span>
+                    <?php if($can_assign): ?>
+                    <select id="mAsignacion" onchange="cambiarAsignacion(this.value)" class="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase outline-none border border-blue-100 appearance-none cursor-pointer max-w-[160px]">
+                        <option value="">👤 Sin Asignar</option>
+                    </select>
+                    <?php endif; ?>
                 </div>
 
-                <div class="grid grid-cols-2 gap-6 mb-8 text-[11px] font-bold text-slate-500 bg-slate-50 p-6 rounded-3xl border border-slate-100">
-                    <div class="space-y-3">
-                        <p class="flex gap-2">📍 <span id="mDomicilio" class="text-slate-800"></span></p>
-                        <div id="mWALinks" class="flex flex-wrap items-center gap-2">
+                <!-- Stats compactos -->
+                <div class="grid grid-cols-4 gap-2 mt-3">
+                    <div class="bg-slate-50 p-2 md:p-5 rounded-2xl border border-slate-100"><p class="text-[8px] md:text-[9px] font-black text-slate-400 uppercase mb-0.5">Vencido</p><h5 id="mTotal" class="text-sm md:text-lg font-black text-slate-800"></h5></div>
+                    <div class="bg-rose-50 p-2 md:p-5 rounded-2xl border border-rose-100"><p class="text-[8px] md:text-[9px] font-black text-rose-400 uppercase mb-0.5">Atraso</p><h5 id="mDias" class="text-sm md:text-lg font-black text-rose-600"></h5></div>
+                    <div class="bg-slate-50 p-2 md:p-5 rounded-2xl border border-slate-100"><p class="text-[8px] md:text-[9px] font-black text-slate-400 uppercase mb-0.5">Cuotas</p><h5 id="mCuotas" class="text-sm md:text-lg font-black text-slate-800"></h5></div>
+                    <div class="bg-slate-50 p-2 md:p-5 rounded-2xl border border-slate-100"><p class="text-[8px] md:text-[9px] font-black text-slate-400 uppercase mb-0.5">Vto</p><h5 id="mVenc" class="text-sm md:text-lg font-black text-slate-800"></h5></div>
+                </div>
+
+                <!-- Info de contacto compacta -->
+                <div class="flex items-start gap-4 mt-3 text-[10px] font-bold text-slate-500 bg-slate-50 px-4 py-3 rounded-2xl border border-slate-100">
+                    <div class="flex-1 space-y-1.5 min-w-0">
+                        <p class="flex gap-1.5 items-center">📍 <span id="mDomicilio" class="text-slate-700 truncate"></span></p>
+                        <div id="mWALinks" class="flex flex-wrap items-center gap-1.5">
                             <span class="text-slate-400">📞</span>
                         </div>
                     </div>
-                    <div class="space-y-3"><p>Doc: <span id="mDocumento" class="text-slate-800"></span></p><p>Último Pago: <span id="mUltimo" class="text-slate-800"></span></p></div>
+                    <div class="space-y-1.5 shrink-0 text-right">
+                        <p>Doc: <span id="mDocumento" class="text-slate-700"></span></p>
+                        <p>Último Pago: <span id="mUltimo" class="text-slate-700"></span></p>
+                    </div>
                 </div>
 
-                <form id="gForm" class="space-y-4 pt-4 border-t flex-1 flex flex-col">
-                    <input type="hidden" name="action" id="gAction" value="insert">
-                    <input type="hidden" name="id" id="gId" value="">
-                    <input type="hidden" name="legajo" id="mLegajoRaw">
-                    
-                    <div class="flex items-center gap-2 mb-2 hidden" id="editWarning">
-                        <span class="bg-amber-100 text-amber-700 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-lg">Estás editando una gestión existente</span>
-                        <button type="button" onclick="cancelarEdicion()" class="text-rose-500 text-[10px] font-black uppercase hover:underline">Cancelar</button>
-                    </div>
+                <!-- TAB SWITCHER (solo mobile) -->
+                <div class="md:hidden flex gap-1 mt-3 bg-slate-100 rounded-2xl p-1">
+                    <button id="tabGestion" onclick="switchModalTab('gestion')" class="flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest bg-white text-blue-600 shadow-sm transition">✏️ Gestión</button>
+                    <button id="tabHistorial" onclick="switchModalTab('historial')" class="flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-400 transition">📋 Historial</button>
+                </div>
+            </div>
 
-                    <div class="grid grid-cols-3 gap-4">
-                        <select name="estado" id="mEst" class="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500 transition-colors">
-                            <option value="promesa">Promesa de Pago</option>
-                            <option value="al_dia" <?= $rol_usuario === 'operador' ? 'disabled class="hidden"' : '' ?>>Al Día (Sin deuda)</option>
-                            <option value="no_responde">No Responde</option>
-                            <option value="no_corresponde">No Corresponde</option>
-                            <option value="llamar">Llamar más tarde</option>
-                            <option value="numero_baja">Número dado de baja</option>
-                            <option value="carta">Carta</option>
-                            <option value="otro">Otro</option>
+            <!-- ======================================================= -->
+            <!-- ÁREA DE CONTENIDO (PANELES)                            -->
+            <!-- ======================================================= -->
+            <div class="flex-1 flex overflow-hidden flex-col md:flex-row">
+                <!-- PANEL IZQUIERDO: GESTIÓN -->
+                <div id="panelGestion" class="w-full md:w-3/5 flex flex-col bg-white overflow-y-auto px-5 pt-4 pb-4 md:px-10 md:pt-6 border-r custom-scroll">
+                    <?php if($can_assign): ?>
+                    <div class="hidden md:flex justify-end mb-4">
+                        <select id="mAsignacionDesktop" onchange="cambiarAsignacion(this.value)" class="bg-blue-50 text-blue-700 px-4 py-2 rounded-xl text-[10px] font-black uppercase outline-none border border-blue-100 text-right appearance-none cursor-pointer">
+                            <option value="">👤 Sin Asignar</option>
                         </select>
-                        <input type="number" step="0.01" name="monto_promesa" id="mMon" placeholder="Monto Acuerdo" class="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none">
-                        <input type="date" name="fecha_promesa" id="mFec" class="p-4 bg-rose-50 border border-rose-300 rounded-2xl text-sm font-bold outline-none transition-colors" required="true" min="<?= date('Y-m-d') ?>">
                     </div>
-                    <!-- TIPS CONTEXTUALES -->
-                    <div id="tips-estado" class="hidden bg-blue-50 border border-blue-100 p-4 rounded-xl text-xs text-blue-800 mb-4 transition-all duration-300">
-                        <div class="flex gap-3">
-                            <span class="text-lg">💡</span>
-                            <div>
-                                <h5 class="font-black uppercase tracking-widest text-[9px] mb-1">Tip de Gestión</h5>
-                                <p id="tips-texto" class="font-semibold"></p>
-                            </div>
+                    <?php endif; ?>
+
+                    <form id="gForm" class="space-y-4 flex flex-col">
+                        <input type="hidden" name="action" id="gAction" value="insert">
+                        <input type="hidden" name="id" id="gId" value="">
+                        <input type="hidden" name="legajo" id="mLegajoRaw">
+
+                        <div class="flex items-center gap-2 mb-2 hidden" id="editWarning">
+                            <span class="bg-amber-100 text-amber-700 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-lg">Estás editando una gestión existente</span>
+                            <button type="button" onclick="cancelarEdicion()" class="text-rose-500 text-[10px] font-black uppercase hover:underline">Cancelar</button>
                         </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <select name="estado" id="mEst" class="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500 transition-colors">
+                                <option value="promesa">Promesa de Pago</option>
+                                <option value="al_dia" <?= $rol_usuario === 'operador' ? 'disabled class="hidden"' : '' ?>>Al Día (Sin deuda)</option>
+                                <option value="no_responde">No Responde</option>
+                                <option value="no_corresponde">No Corresponde</option>
+                                <option value="llamar">Llamar más tarde</option>
+                                <option value="numero_baja">Número dado de baja</option>
+                                <option value="carta">Carta</option>
+                                <option value="otro">Otro</option>
+                            </select>
+                            <input type="number" step="0.01" name="monto_promesa" id="mMon" placeholder="Monto Acuerdo" class="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none">
+                            <input type="date" name="fecha_promesa" id="mFec" class="p-4 bg-rose-50 border border-rose-300 rounded-2xl text-sm font-bold outline-none transition-colors" required="true" min="<?= date('Y-m-d') ?>">
+                        </div>
+
+                        <div id="tips-estado" class="hidden bg-blue-50 border border-blue-100 p-4 rounded-xl text-xs text-blue-800 transition-all duration-300">
+                             <div class="flex gap-3"><span class="text-lg">💡</span><div class="font-semibold"><h5 class="font-black uppercase tracking-widest text-[9px] mb-1">Tip de Gestión</h5><p id="tips-texto"></p></div></div>
+                        </div>
+
+                        <textarea name="observacion" rows="4" required class="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium outline-none resize-none custom-scroll" placeholder="Resumen de la conversación..."></textarea>
+                        <button type="submit" id="btnSubmitGestion" class="w-full bg-blue-600 text-white py-5 rounded-3xl font-black uppercase text-xs shadow-xl hover:bg-blue-700 transition">Guardar Gestión</button>
+                    </form>
+                </div>
+
+                <!-- PANEL DERECHO: HISTORIAL -->
+                <div id="panelHistorial" class="hidden md:flex w-full md:w-2/5 flex-col bg-slate-50 overflow-hidden">
+                    <div class="px-6 py-5 md:px-10 md:py-8 flex justify-between items-center border-b border-slate-200 shrink-0 hidden md:flex">
+                        <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Línea de Tiempo</h4>
                     </div>
-                    <textarea name="observacion" rows="3" required class="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium outline-none resize-none flex-1 custom-scroll" placeholder="Resumen de la conversación..."></textarea>
-                    <button type="submit" id="btnSubmitGestion" class="w-full bg-blue-600 text-white py-5 rounded-3xl font-black uppercase text-xs shadow-xl hover:bg-blue-700 transition">Guardar Gestión</button>
-                </form>
+                    <div id="mHis" class="flex-1 overflow-y-auto space-y-4 custom-scroll p-5 md:p-8"></div>
+                </div>
             </div>
-            <div class="w-full md:w-2/5 bg-slate-50 p-10 flex flex-col">
-                <div class="flex justify-between items-center mb-8"><h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Línea de Tiempo</h4><button onclick="closeModal()" class="text-slate-400 hover:text-slate-900 text-2xl">✕</button></div>
-                <div id="mHis" class="flex-1 overflow-y-auto space-y-4 custom-scroll pr-4"></div>
-            </div>
+
         </div>
     </div>
     
@@ -650,6 +796,34 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
         { id: 'carta', label: 'CARTA', class: 'badge-carta' },
         { id: 'otro', label: 'OTRO', class: 'badge-otro' }
     ];
+
+    /**
+     * Lógica del Drawer Móvil
+     * Alterna la visibilidad del menú lateral (Drawer)
+     */
+    function toggleMenu() {
+        const menu = document.getElementById('mobileMenu');
+        const overlay = document.getElementById('mobileMenuOverlay');
+        const drawer = document.getElementById('mobileMenuDrawer');
+        
+        if (menu.classList.contains('hidden')) {
+            // Mostrar menú
+            menu.classList.remove('hidden');
+            // Pequeño delay para permitir que el display:block se aplique antes de animar
+            setTimeout(() => {
+                overlay.classList.remove('opacity-0');
+                drawer.classList.remove('translate-x-full');
+            }, 10);
+        } else {
+            // Ocultar menú
+            overlay.classList.add('opacity-0');
+            drawer.classList.add('translate-x-full');
+            // Esperar a que termine la animación antes de aplicar display:none
+            setTimeout(() => {
+                menu.classList.add('hidden');
+            }, 300);
+        }
+    }
 
     let operadoresList = [];
     let selectedLegajos = []; 
@@ -835,10 +1009,12 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
                     document.getElementById('listaSucursales').innerHTML = data.sucursales.map(s => {
                         let monto = `$${parseFloat(s.deuda_en_calle || 0).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
                         let gestiones = s.total_gestiones || 0;
+                        let pctGestion = s.total_clientes > 0 ? Math.round((gestiones / s.total_clientes) * 100) : 0;
                         return `<tr class="hover:bg-blue-50/50 transition border-b border-slate-50">
                             <td class="px-6 py-4 font-black text-slate-800 uppercase text-[11px] tracking-widest">${s.sucursal_nombre}</td>
                             <td class="px-6 py-4 text-center font-bold text-slate-500">${s.total_clientes}</td>
                             <td class="px-6 py-4 text-center font-bold text-blue-600">${gestiones}</td>
+                            <td class="px-6 py-4 text-center font-black text-slate-700">${pctGestion}%</td>
                             <td class="px-6 py-4 text-right font-black text-rose-600 bg-rose-50/30">${monto}</td>
                         </tr>`;
                     }).join('') || `<tr><td colspan="4" class="text-center py-6 text-slate-400 font-bold text-xs uppercase tracking-widest">Sin datos</td></tr>`;
@@ -847,8 +1023,11 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
                 if (document.getElementById('listaDashboard') && data.data) {
                     document.getElementById('listaDashboard').innerHTML = data.data.map(op => {
                         const asignados = parseInt(op.total_asignados) || 0;
+                        const gestionados = parseInt(op.clientes_gestionados) || 0; 
                         const total_gestiones = parseInt(op.total_gestiones) || 0;
                         const promesas = parseInt(op.promesas_logradas) || 0;
+                        
+                        const pctGestionados = asignados > 0 ? Math.round((gestionados / asignados) * 100) : 0;
                         const efectividad = total_gestiones > 0 ? Math.round((promesas / total_gestiones) * 100) : 0;
                         const colorEfectividad = efectividad >= 30 ? 'text-emerald-500' : (efectividad >= 15 ? 'text-amber-500' : 'text-rose-500');
                         
@@ -856,6 +1035,7 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
                             <td class="px-6 py-4 font-black text-slate-800 text-xs">${op.nombre || 'Desconocido'}</td>
                             <td class="px-6 py-4 text-center font-bold text-slate-600">${asignados}</td>
                             <td class="px-6 py-4 text-center font-bold text-blue-600">${total_gestiones}</td>
+                            <td class="px-6 py-4 text-center font-black text-slate-700">${pctGestionados}%</td>
                             <td class="px-6 py-4 text-center font-bold text-emerald-600">${promesas}</td>
                             <td class="px-6 py-4 text-center font-black ${colorEfectividad}">${efectividad}%</td>
                         </tr>`;
@@ -926,14 +1106,37 @@ const load = async () => {
 
                 let cJson = JSON.stringify(c).replace(/'/g, "\\'").replace(/"/g, '&quot;'); 
 
-                return `<tr class="hover:bg-blue-50/50 cursor-pointer transition border-l-[6px] border-l-${c.semaforo === 'blanco' ? 'transparent' : (c.semaforo === 'rojo' ? 'rose-500' : (c.semaforo === 'amarillo' ? 'amber-400' : 'emerald-500'))}" ondblclick="openModal(${cJson})">
+                // ETIQUETA DE COINCIDENCIA (Nueva solicitud)
+                let badgeMatch = c.match_reason ? `<span class="inline-flex items-center px-1.5 py-0.5 ml-1 text-[8px] font-black uppercase tracking-widest text-slate-500 bg-slate-100 border border-slate-200 rounded shadow-sm" title="Coincidencia en ${c.match_reason}">🔍 ${c.match_reason}</span>` : '';
+
+                return `<tr class="hover:bg-blue-50/50 cursor-pointer transition border-l-[6px] border-l-${c.semaforo === 'blanco' ? 'transparent' : (c.semaforo === 'rojo' ? 'rose-500' : (c.semaforo === 'amarillo' ? 'amber-400' : 'emerald-500'))}" onclick="openModal(${cJson})">
                     ${checkHTML}
-                    <td class="${paddingLegajo} py-5"><p class="font-black text-slate-800 text-sm flex items-center gap-1">${c.legajo} ${badgeMoto}</p><p class="text-[9px] font-bold text-slate-400 uppercase">${c.nro_documento}</p></td>
-                    <td class="px-8 py-5"><p class="font-black uppercase text-slate-700 text-sm truncate max-w-[200px]">${c.razon_social}</p><p class="text-[10px] font-bold text-blue-500 uppercase italic">${c.sucursal || 'Central'}</p></td>
-                    <td class="px-8 py-5 text-center"><p class="font-bold text-slate-800 text-sm">${c.c_cuotas} Ctas</p>${c.dias_atraso > 0 ? `<p class="text-[9px] font-black text-rose-500 uppercase">${c.dias_atraso} días</p>` : ''}</td>
-                    <td class="px-8 py-5 text-right"><p class="font-black text-slate-900 text-base">${trMonto}</p></td>
-                    <td class="px-8 py-5 text-center"><span class="px-4 py-1.5 rounded-full text-[9px] font-black uppercase ${badgeClass}">${labelEstado}</span><div class="flex justify-center">${opBadge}</div></td>
-                    <td class="px-8 py-5 text-center"><button onclick="event.stopPropagation(); openModal(${cJson})" class="bg-blue-600 text-white px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase hover:bg-blue-700 transition shadow-sm">Gestionar</button></td>
+                    <td class="${paddingLegajo} py-5">
+                        <div class="flex flex-col">
+                            <p class="font-black text-slate-800 text-sm flex items-center gap-1">${c.legajo} ${badgeMoto} ${badgeMatch}</p>
+                            <p class="text-[9px] font-bold text-slate-400 uppercase">${c.nro_documento}</p>
+                            <!-- Solo Mobile: Monto y Sucursal -->
+                            <div class="md:hidden mt-2">
+                                <p class="font-black text-slate-900 text-sm">${trMonto}</p>
+                                <p class="text-[9px] font-bold text-blue-500 uppercase italic mt-0.5">${c.sucursal || 'Central'}</p>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-8 py-5">
+                        <div class="flex flex-col">
+                            <p class="font-black uppercase text-slate-700 text-sm truncate max-w-[150px] md:max-w-[200px]">${c.razon_social}</p>
+                            <p class="hidden md:block text-[10px] font-bold text-blue-500 uppercase italic">${c.sucursal || 'Central'}</p>
+                            <!-- Solo Mobile: Estado y Cuotas -->
+                            <div class="md:hidden flex flex-wrap items-center gap-2 mt-2">
+                                <span class="px-3 py-1 rounded-full text-[8px] font-black uppercase ${badgeClass}">${labelEstado}</span>
+                                <p class="text-[9px] font-black text-slate-500 uppercase">${c.c_cuotas} Ctas ${c.dias_atraso > 0 ? `• <span class="text-rose-500">${c.dias_atraso}d</span>` : ''}</p>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-8 py-5 text-center hidden md:table-cell"><p class="font-bold text-slate-800 text-sm">${c.c_cuotas} Ctas</p>${c.dias_atraso > 0 ? `<p class="text-[9px] font-black text-rose-500 uppercase">${c.dias_atraso} días</p>` : ''}</td>
+                    <td class="px-8 py-5 text-right hidden md:table-cell"><p class="font-black text-slate-900 text-base">${trMonto}</p></td>
+                    <td class="px-8 py-5 text-center hidden md:table-cell"><span class="px-4 py-1.5 rounded-full text-[9px] font-black uppercase ${badgeClass}">${labelEstado}</span><div class="flex justify-center">${opBadge}</div></td>
+                    <td class="px-8 py-5 text-center hidden md:table-cell"><button onclick="event.stopPropagation(); openModal(${cJson})" class="bg-blue-600 text-white px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase hover:bg-blue-700 transition shadow-sm">Gestionar</button></td>
                 </tr>`;
             }).join('');
             updateBulkUI();
@@ -1042,11 +1245,15 @@ const load = async () => {
             
             const fOp = document.getElementById('filter-operador');
             if(fOp) fOp.innerHTML = '<option value="0">Todos los Operadores</option><option value="-1">👤 Sin Asignar</option>' + opsHTML;
-            document.getElementById('mAsignacion').innerHTML = '<option value="">👤 Sin Asignar</option>' + opsHTML; 
+            document.getElementById('mAsignacion').innerHTML = '<option value="">👤 Sin Asignar</option>' + opsHTML;
+            const mAsigDesk = document.getElementById('mAsignacionDesktop');
+            if (mAsigDesk) mAsigDesk.innerHTML = '<option value="">👤 Sin Asignar</option>' + opsHTML; 
             const bOp = document.getElementById('masivo_operador');
             if(bOp) bOp.innerHTML += opsHTML;
             switchTab('dashboard');
         } else { switchTab('clientes'); }
+        
+        loadContactToggles();
         
         load(); 
         stats(); 
@@ -1062,6 +1269,27 @@ const load = async () => {
         clearTimeout(searchTimeout);
         searchTimeout = setTimeout(() => { load(); stats(); }, 400);
     };
+
+    function saveContactToggles() {
+        const prefs = {
+            waWeb: document.getElementById('toggleWaWeb').checked,
+            waApp: document.getElementById('toggleWaApp').checked,
+            llamar: document.getElementById('toggleLlamar').checked,
+            sms: document.getElementById('toggleSms').checked
+        };
+        localStorage.setItem('crm_contact_prefs', JSON.stringify(prefs));
+    }
+    
+    function loadContactToggles() {
+        try {
+            const saved = localStorage.getItem('crm_contact_prefs');
+            const prefs = saved ? JSON.parse(saved) : {waWeb: true, waApp: false, llamar: false, sms: false};
+            document.getElementById('toggleWaWeb').checked = prefs.waWeb;
+            document.getElementById('toggleWaApp').checked = prefs.waApp;
+            document.getElementById('toggleLlamar').checked = prefs.llamar;
+            document.getElementById('toggleSms').checked = prefs.sms;
+        } catch(e) { }
+    }
 
     const stats = async () => { 
         const q = document.getElementById('search').value;
@@ -1091,7 +1319,16 @@ const load = async () => {
         document.getElementById('mHisList').innerHTML = hData.map(h => {
             let fH = h.fecha.split(' ')[0].split('-').reverse().join('/') + ' ' + h.fecha.split(' ')[1].substring(0,5);
             let badgeH = `badge-${h.estado}`;
-            let details = h.estado === 'promesa' ? `<div class="mt-2 flex gap-4 text-[9px] font-black uppercase text-blue-500 bg-blue-50 p-2 rounded-xl"><span>💰 $${parseFloat(h.monto_promesa).toLocaleString('es-AR')}</span><span>📅 ${h.fecha_promesa?.split('-').reverse().join('/')}</span></div>` : '';
+            let details = '';
+            if (h.estado === 'promesa') {
+                let dtPromesa = h.fecha_promesa ? h.fecha_promesa.split('-').reverse().join('/') : '';
+                let msgRec = encodeURIComponent(`Hola, le recuerdo su promesa para el dia ${dtPromesa}\nOp: ${legajo}`).replace(/'/g, "%27");
+                details = `<div class="mt-2 flex gap-4 text-[9px] font-black uppercase text-blue-500 bg-blue-50 p-2 rounded-xl items-center">
+                    <span>💰 $${parseFloat(h.monto_promesa).toLocaleString('es-AR')}</span>
+                    <span>📅 ${dtPromesa}</span>
+                    <button type="button" onclick="enviarRecordatorio('${msgRec}')" title="Enviar recordatorio de promesa" class="ml-auto inline-flex items-center gap-1 bg-emerald-500 hover:bg-emerald-600 text-white px-2 py-0.5 rounded-full transition cursor-pointer">💬 Recordatorio</button>
+                </div>`;
+            }
             
             let btnEdit = '';
             let btnDel = '';
@@ -1137,7 +1374,14 @@ const load = async () => {
         document.getElementById('mLegajo').innerHTML = `ID: ${c.l_entidad_id || '-'} • Legajo: ${c.legajo} ${badgeMotoModal}`;
         
         document.getElementById('mSucursal').innerText = c.sucursal || 'Central';
-        if (canAssign) document.getElementById('mAsignacion').value = c.operador_id || '';
+        // Sincronizar campo de sucursal en mobile
+        const mSucursalMob = document.getElementById('mSucursalMobile');
+        if (mSucursalMob) mSucursalMob.innerText = c.sucursal || 'Central';
+        if (canAssign) {
+            document.getElementById('mAsignacion').value = c.operador_id || '';
+            const mAsigDesk = document.getElementById('mAsignacionDesktop');
+            if (mAsigDesk) mAsigDesk.value = c.operador_id || '';
+        }
         
         const warnBadge = document.getElementById('mWarningOtroOp');
         if(isOperador && c.operador_id != currentUserId) {
@@ -1154,12 +1398,14 @@ const load = async () => {
         // Teléfonos: genera un botón WhatsApp independiente por cada número
         const telefonos = c.telefonos || '';
         const operadorNombre = <?= json_encode($nombre_usuario) ?>;
-        const mensaje = `Hola, mi nombre es ${operadorNombre}. Me comunico de Landy Confort para informarle que tiene cuotas vencidas, lo esperamos en breve.`;
+        const legajoCliente = c.legajo || '';
+        const mensaje = `Hola, mi nombre es ${operadorNombre}. Me comunico de Landy Confort para informarle que tiene cuotas vencidas, lo esperamos en breve.\n_Op: ${legajoCliente}_`;
         const msgEnc = encodeURIComponent(mensaje);
         const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
-        const waBase = isMobile ? 'https://api.whatsapp.com/send' : 'https://web.whatsapp.com/send';
+        
         // Separadores: guión normal, guión largo, barra, coma, punto y coma
         const numerosRaw = telefonos.split(/[-–\/,;]+/).map(n => n.trim()).filter(n => n.length > 0);
+        window.currentClientPhones = numerosRaw;
         const waContainer = document.getElementById('mWALinks');
         waContainer.innerHTML = '<span class="text-slate-400">📞</span>'; // reset
         if (numerosRaw.length === 0 || telefonos === '') {
@@ -1167,27 +1413,79 @@ const load = async () => {
         } else {
             numerosRaw.forEach(raw => {
                 const soloDigitos = raw.replace(/\D/g, '');
-                // Mostrar el número como texto
+                
                 const spanNro = document.createElement('span');
                 spanNro.className = 'text-slate-800 font-bold';
                 spanNro.textContent = raw;
                 waContainer.appendChild(spanNro);
-                // Si tiene suficientes dígitos, agregar botón WA
+                
                 if (soloDigitos.length >= 8) {
                     let nroLimpio = soloDigitos.replace(/^0/, '');
                     if (!nroLimpio.startsWith('549')) nroLimpio = '549' + nroLimpio;
-                    const btn = document.createElement('a');
-                    btn.href = `${waBase}?phone=${nroLimpio}&text=${msgEnc}`;
-                    btn.target = '_blank';
-                    btn.title = `WhatsApp ${raw}`;
-                    btn.className = 'inline-flex items-center gap-1 bg-emerald-500 hover:bg-emerald-600 text-white text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full transition';
-                    btn.innerHTML = '💬';
-                    waContainer.appendChild(btn);
+                    
+                    // Número con formato para tel: y sms: (prefijo +54 9)
+                    const nroTel = '+' + nroLimpio;
+                    const smsBody = encodeURIComponent(`Hola, me comunico de Landy Confort. Ref: ${legajoCliente}`);
+                    
+                    // Leer preferencias guardadas (en localStorage o estado de los checks)
+                    let prefs = {waWeb: true, waApp: false, llamar: false, sms: false};
+                    try { const saved = localStorage.getItem('crm_contact_prefs'); if (saved) prefs = JSON.parse(saved); } catch(e) {}
+                    
+                    if (isMobile) {
+                        // En celulares, mostramos la opción nativa si el usuario quiere usar waWeb o waApp
+                        if (prefs.waWeb || prefs.waApp) {
+                            const btnMobil = document.createElement('a');
+                            btnMobil.href = `https://api.whatsapp.com/send?phone=${nroLimpio}&text=${msgEnc}`;
+                            btnMobil.target = '_blank';
+                            btnMobil.title = `WhatsApp Móvil ${raw}`;
+                            btnMobil.className = 'inline-flex items-center gap-1 bg-emerald-500 hover:bg-emerald-600 text-white text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full transition ml-1';
+                            btnMobil.innerHTML = '💬 WA';
+                            waContainer.appendChild(btnMobil);
+                        }
+                    } else {
+                        // Desktop
+                        if (prefs.waApp) {
+                            const btnApp = document.createElement('a');
+                            btnApp.href = `whatsapp://send?phone=${nroLimpio}&text=${msgEnc}`;
+                            btnApp.title = `Abrir en WhatsApp Desktop (PC)`;
+                            btnApp.className = 'inline-flex items-center gap-1 bg-teal-500 hover:bg-teal-600 text-white text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full transition ml-1';
+                            btnApp.innerHTML = '💻 APP';
+                            waContainer.appendChild(btnApp);
+                        }
+                        
+                        if (prefs.waWeb) {
+                            const btnWeb = document.createElement('a');
+                            btnWeb.href = `https://web.whatsapp.com/send?phone=${nroLimpio}&text=${msgEnc}`;
+                            btnWeb.target = 'whatsapp_crm';
+                            btnWeb.title = `Abrir en WhatsApp Web`;
+                            btnWeb.className = 'inline-flex items-center gap-1 bg-emerald-500 hover:bg-emerald-600 text-white text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full transition ml-1';
+                            btnWeb.innerHTML = '🌐 WEB';
+                            waContainer.appendChild(btnWeb);
+                        }
+                    }
+                    
+                    if (prefs.llamar) {
+                        const btnCall = document.createElement('a');
+                        btnCall.href = `tel:${nroTel}`;
+                        btnCall.title = `Llamar a ${raw}`;
+                        btnCall.className = 'inline-flex items-center gap-1 bg-blue-500 hover:bg-blue-600 text-white text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full transition ml-1';
+                        btnCall.innerHTML = '📞 LLAMAR';
+                        waContainer.appendChild(btnCall);
+                    }
+                    
+                    if (prefs.sms) {
+                        const btnSms = document.createElement('a');
+                        btnSms.href = `sms:${nroTel}?body=${smsBody}`;
+                        btnSms.title = `Enviar SMS a ${raw}`;
+                        btnSms.className = 'inline-flex items-center gap-1 bg-violet-500 hover:bg-violet-600 text-white text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full transition ml-1';
+                        btnSms.innerHTML = '✉️ SMS';
+                        waContainer.appendChild(btnSms);
+                    }
                 }
-                // Separador entre números
+                
                 if (raw !== numerosRaw[numerosRaw.length - 1]) {
                     const sep = document.createElement('span');
-                    sep.className = 'text-slate-300 font-bold';
+                    sep.className = 'text-slate-300 font-bold ml-1 mr-1';
                     sep.textContent = '•';
                     waContainer.appendChild(sep);
                 }
@@ -1227,6 +1525,47 @@ const load = async () => {
 
         document.getElementById('modal').classList.replace('hidden', 'flex'); 
         setTimeout(() => document.getElementById('mContent').classList.replace('scale-95', 'scale-100'), 10);
+        // En mobile: siempre abrir en tab Gestión
+        switchModalTab('gestion');
+    }
+
+    function closeModal() {
+        const m = document.getElementById('modal');
+        document.getElementById('mContent').classList.replace('scale-100', 'scale-95');
+        setTimeout(() => m.classList.replace('flex', 'hidden'), 200);
+    }
+
+    /**
+     * Alterna entre el panel de Gestión y el de Historial en mobile.
+     * En desktop ambos paneles son siempre visibles (side by side).
+     */
+    function switchModalTab(tab) {
+        const isMobileView = window.innerWidth < 768;
+        const panelGestion   = document.getElementById('panelGestion');
+        const panelHistorial = document.getElementById('panelHistorial');
+        const tabGestion     = document.getElementById('tabGestion');
+        const tabHistorial   = document.getElementById('tabHistorial');
+
+        if (!isMobileView) {
+            // Desktop: ambos paneles siempre visibles
+            panelHistorial.classList.remove('hidden');
+            panelHistorial.classList.add('flex');
+            return;
+        }
+
+        if (tab === 'gestion') {
+            panelGestion.classList.remove('hidden');
+            panelHistorial.classList.add('hidden');
+            panelHistorial.classList.remove('flex');
+            if (tabGestion)   { tabGestion.classList.add('bg-white', 'text-blue-600', 'shadow-sm'); tabGestion.classList.remove('text-slate-400'); }
+            if (tabHistorial) { tabHistorial.classList.remove('bg-white', 'text-blue-600', 'shadow-sm'); tabHistorial.classList.add('text-slate-400'); }
+        } else {
+            panelHistorial.classList.remove('hidden');
+            panelHistorial.classList.add('flex');
+            panelGestion.classList.add('hidden');
+            if (tabHistorial) { tabHistorial.classList.add('bg-white', 'text-blue-600', 'shadow-sm'); tabHistorial.classList.remove('text-slate-400'); }
+            if (tabGestion)   { tabGestion.classList.remove('bg-white', 'text-blue-600', 'shadow-sm'); tabGestion.classList.add('text-slate-400'); }
+        }
     }
 
     function prepararEdicion(h) {
@@ -1343,8 +1682,70 @@ const load = async () => {
         };
     }
 
-    async function cambiarAsignacion(uid) { const legajo = document.getElementById('mLegajoRaw').value; if(!legajo) return; const fd = new FormData(); fd.append('legajo', legajo); fd.append('usuario_id', uid); await fetch(api_clientes+'assign', {method:'POST', body:fd}); load(); stats(); if(canAssign) loadDashboard(); }
+    async function cambiarAsignacion(uid) {
+        const legajo = document.getElementById('mLegajoRaw').value;
+        if (!legajo) return;
+        // Sincronizar ambos selectores (mobile y desktop)
+        const selMob  = document.getElementById('mAsignacion');
+        const selDesk = document.getElementById('mAsignacionDesktop');
+        if (selMob  && selMob.value  !== uid) selMob.value  = uid;
+        if (selDesk && selDesk.value !== uid) selDesk.value = uid;
+        const fd = new FormData();
+        fd.append('legajo', legajo);
+        fd.append('usuario_id', uid);
+        await fetch(api_clientes + 'assign', { method: 'POST', body: fd });
+        load(); stats(); if (canAssign) loadDashboard();
+    }
     async function cambiarAsignacionRapida(legajo, uid) { const fd = new FormData(); fd.append('legajo', legajo); fd.append('usuario_id', uid); await fetch(api_clientes+'assign', {method:'POST', body:fd}); stats(); if(canAssign) loadDashboard(); }
+    function enviarRecordatorio(msgEnc) {
+        if (!window.currentClientPhones || window.currentClientPhones.length === 0) {
+            alert('El cliente no tiene un número de teléfono registrado.');
+            return;
+        }
+        
+        let telRaw = window.currentClientPhones[0];
+        if (window.currentClientPhones.length > 1) {
+            let opciones = window.currentClientPhones.map((t, i) => `${i + 1}: ${t}`).join('\n');
+            let sel = prompt(`El cliente tiene varios teléfonos. Ingrese el número de la opción que desea usar para el recordatorio:\n\n${opciones}\n\nO ingrese un número distinto directamente:`, '1');
+            if (!sel) return; // Se canceló
+            let idx = parseInt(sel) - 1;
+            if (!isNaN(idx) && idx >= 0 && idx < window.currentClientPhones.length) {
+                telRaw = window.currentClientPhones[idx];
+            } else {
+                telRaw = sel; // si ingresó un celular a mano
+            }
+        }
+        
+        const soloDigitos = telRaw.replace(/\D/g, '');
+        if (soloDigitos.length < 8) {
+            alert('El número de teléfono parece inválido para enviar WhatsApp.');
+            return;
+        }
+        let nroLimpio = soloDigitos.replace(/^0/, '');
+        if (!nroLimpio.startsWith('549')) nroLimpio = '549' + nroLimpio;
+        
+        let prefs = {waWeb: true, waApp: false};
+        try { const saved = localStorage.getItem('crm_contact_prefs'); if(saved) prefs = JSON.parse(saved); } catch(e){}
+        const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
+        
+        let url = '';
+        if (isMobile) {
+            url = `https://api.whatsapp.com/send?phone=${nroLimpio}&text=${msgEnc}`;
+        } else {
+            if (prefs.waApp) {
+                url = `whatsapp://send?phone=${nroLimpio}&text=${msgEnc}`;
+            } else {
+                url = `https://web.whatsapp.com/send?phone=${nroLimpio}&text=${msgEnc}`;
+            }
+        }
+        
+        if (isMobile || prefs.waApp) {
+            window.open(url, '_blank');
+        } else {
+            window.open(url, 'whatsapp_crm');
+        }
+    }
+
     function closeModal() { document.getElementById('mContent').classList.replace('scale-100', 'scale-95'); setTimeout(() => document.getElementById('modal').classList.replace('flex', 'hidden'), 300); }
     
     function openUserModal() { document.getElementById('uId').value = ''; document.getElementById('userForm').reset(); document.getElementById('modalUser').classList.replace('hidden', 'flex'); }

@@ -73,8 +73,33 @@ try {
     }
 
     // ── CONSTRUIR WHERE DINÁMICO ──
-    $where = " WHERE (c.razon_social LIKE :q OR c.nro_documento LIKE :q OR c.legajo LIKE :q OR c.sucursal LIKE :q)";
+    $phoneSearch = preg_replace('/[^0-9]/', '', $q);
+    $phoneCondition = "";
+    $matchReasonSelection = "";
+    if (!empty($phoneSearch)) {
+        $phoneCondition = " OR REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(c.telefonos, ' ', ''), '-', ''), '+', ''), '(', ''), ')', '') LIKE :phone";
+    }
+
+    if (!empty($q)) {
+        $matchReasonSelection = ", CASE 
+            WHEN c.legajo LIKE :q THEN 'LEGAJO'
+            WHEN c.nro_documento LIKE :q THEN 'DOCUMENTO'
+            WHEN c.razon_social LIKE :q THEN 'NOMBRE'
+            WHEN REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(c.telefonos, ' ', ''), '-', ''), '+', ''), '(', ''), ')', '') LIKE :phone_match THEN 'TELÉFONO'
+            WHEN c.sucursal LIKE :q THEN 'SUCURSAL'
+            ELSE ''
+        END as match_reason";
+    }
+
+    $where = " WHERE (c.razon_social LIKE :q OR c.nro_documento LIKE :q OR c.legajo LIKE :q OR c.sucursal LIKE :q" . $phoneCondition . ")";
     $params = [':q' => "%$q%"];
+    
+    if (!empty($phoneSearch)) {
+        $params[':phone'] = '%' . $phoneSearch . '%';
+        if (!empty($q)) $params[':phone_match'] = '%' . $phoneSearch . '%';
+    } elseif (!empty($q)) {
+        $params[':phone_match'] = '---NONE---';
+    }
 
     if (!empty($f_estado)) {
         if ($f_estado === 'sin_gestion') $where .= " AND gest.estado IS NULL";
@@ -133,7 +158,7 @@ try {
     // ── LISTADO PRINCIPAL ──
     $limit = min((int)($_GET['limit'] ?? 200), 500);
 
-    $sql = "$select_core
+    $sql = "$select_core $matchReasonSelection
             FROM clientes c
             LEFT JOIN asignaciones a   ON c.legajo = a.legajo
             LEFT JOIN usuarios u       ON a.usuario_id = u.id

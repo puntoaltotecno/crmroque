@@ -122,6 +122,39 @@ Línea de tiempo. La gestión con el ID más alto determina el "estado actual".
 
 ## 🚀 Historial de Cambios
 
+### v2.3 — Optimización de UX Móvil y Navegación SPA (16 de Abril, 2026)
+
+* 📱 **Navegación Híbrida Móvil:** Implementación de un sistema dual para tablets y celulares:
+  - **Bottom Navigation Bar:** Barra fija inferior con acceso rápido a las secciones principales (Clientes, Dashboard, Usuarios, etc).
+  - **Hamburger Menu (Drawer):** Menú lateral desplegable para acciones secundarias y logout.
+* 📋 **Vista Enriquecida de Clientes (Rich List):** La tabla de clientes ahora es inteligente. En mobile condensa los 7 datos clave en 3 columnas optimizadas:
+  - **Columna Datos:** Legajo + DNI + Monto Vencido + Sucursal (apilados).
+  - **Columna Estado:** Nombre + Estado Actual + Cuotas + Atraso (apilados).
+  - Se habilitó la apertura de ficha con **un solo clic** en cualquier parte de la fila para dispositivos táctiles.
+* 🗂️ **Modal de Gestión con Pestañas (Mobile Tabs):** Rediseño total del modal de cliente para pantallas pequeñas:
+  - **Cabecera Persistente:** Datos del cliente y botones de navegación siempre visibles arriba.
+  - **Sistema de Tabs:** Permite alternar entre el formulario de "Gestión" y la línea de tiempo de "Historial" sin perder el contexto ni scrollear infinitamente.
+  - En desktop, se mantiene el diseño de doble columna original (side-by-side).
+
+### v2.2 — Búsqueda por Teléfono e Identificación de Coincidencias (15 de Abril, 2026)
+
+* 🔍 **Búsqueda por Teléfono:** Se habilitó la búsqueda de clientes por número de teléfono en la barra superior. El sistema normaliza automáticamente tanto la entrada del usuario como los datos en BD, permitiendo encontrar números sin importar si tienen espacios, guiones, paréntesis o signo +.
+* 🏷️ **Etiquetas de Coincidencia (Match Tagging):** Cuando se realiza una búsqueda, el sistema ahora muestra una pequeña etiqueta descriptiva junto al legajo (ej: `🔍 TELÉFONO`, `🔍 DOCUMENTO`, `🔍 NOMBRE`) para que el operador identifique instantáneamente por qué campo se ha encontrado ese resultado.
+* 🛠️ **Consistencia en Exportación:** La lógica de búsqueda por teléfono se replicó en el motor de exportación `exportar_csv.php`, asegurando que el reporte generado coincida con lo que el operador ve en pantalla.
+* 🐛 **Fix UI Search:** Se corrigió un error de sintaxis HTML en el input de búsqueda que tenía el atributo `id` duplicado.
+
+### v2.1 — Comunicación Multi-Canal y Optimización WhatsApp (13 de Abril, 2026)
+
+* ⏰ **Recordatorio de Promesas Inteligente:** Dentro del Historial de Gestiones, si una gestión es "Promesa", se agregó un botón **"💬 Recordatorio"** junto a la fecha pactada. Al pulsarlo:
+  - Si el cliente tiene un solo número, inicia automáticamente el chat con el recordatorio.
+  - Si tiene múltiples y/o se ingresa uno distinto mediante un control de alerta, el sistema adaptará a cuál enviar automáticamente.
+  - Respeta dinámicamente si el operador utiliza la versión Web (para PC), su App movil o la de Escritorio, aplicando prefijos argentinos integrados (+549).
+* 🎛️ **Filtros de Contacto por Operador:** Se agregaron _toggles_ (interruptores) en la barra de búsqueda que permiten a cada operador elegir qué botones de contacto ver por defecto. Esto ayuda a limpiar la interfaz ocultando botones que no se usan con frecuencia. La configuración se guarda en el navegador de cada usuario (`localStorage`), y por defecto solo muestra **WhatsApp Web**.
+* 📞 **Botón Llamar (tel:):** Se añadió un botón azul **"📞 LLAMAR"** por cada número del cliente. Al hacer clic, inicia una llamada directa usando la línea telefónica del dispositivo del operador (celular nativo o apps de PC como Enlace Telefónico de Windows).
+* ✉️ **Botón SMS (sms:):** Se añadió un botón violeta **"✉️ SMS"** por cada número. Abre la aplicación de mensajes de texto con un mensaje predefinido que incluye el legajo del cliente para identificación.
+* 🔄 **Pestaña Única WhatsApp Web:** Los enlaces de WhatsApp Web ahora reutilizan siempre la misma pestaña del navegador (`target='whatsapp_crm'`) en lugar de abrir una nueva pestaña por cada clic. Esto evita la acumulación de pestañas durante la jornada del operador.
+* 🆔 **Legajo en Mensaje WhatsApp:** El mensaje predefinido que se envía por WhatsApp ahora incluye el **número de legajo** del cliente al final del texto (`_Op: LEGAJO_`). Esto permite identificar rápidamente al cliente cuando responde, sin necesidad de cruzar datos manualmente.
+
 ### v2.0 — WhatsApp, Validaciones y Métricas (11 de Abril, 2026)
 
 * 📱 **Integración WhatsApp por Número:** El modal de gestión de clientes ahora muestra un botón 💬 verde por **cada número de teléfono** registrado. Al hacer clic se abre WhatsApp (Web en PC, App en celular) con un mensaje predefinido firmado con el nombre del operador logueado. Formatea automáticamente el número al estándar argentino `+549XXXXXXXXXX`.
@@ -168,7 +201,8 @@ Línea de tiempo. La gestión con el ID más alto determina el "estado actual".
 ---
 
 ## ⚠️ Notas para el Desarrollador
-* **`legajo`** es la clave de negocio universal. Nunca usar `id` para relacionar clientes con historiales o asignaciones.
+* **Buscador Inteligente:** Permite rastrear clientes por Legajo, DNI, Razón Social, Sucursal y **Número de Teléfono**. La búsqueda por teléfono es insensible al formato (ignora `+`, `-`, `()`, espacios). El sistema devuelve una etiqueta de coindicencia (`match_reason`) para identificar el origen del acierto en la UI.
+* **La clave de negocio universal es `legajo`**: NUNCA utilizar el ID de la base de datos para vincular historial de gestiones o llamadas a las APIs. Toda operación depende de `legajo`.
 * El archivo `reset.php` es una herramienta de emergencia y debe eliminarse del servidor de producción tras su uso.
 * Las contraseñas usan `password_hash()` (bcrypt).
 * Si el sistema falla retornando JSON inválido, revisar espacios en blanco antes de `<?php` en los archivos API.
