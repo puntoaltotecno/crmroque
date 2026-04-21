@@ -7,7 +7,7 @@ Sistema web de seguimiento de cartera de clientes con asignación de operadores,
 ## 🛠️ Tecnologías
 * **Backend:** PHP 7.4+ con PDO (Sin frameworks, prepared statements obligatorios).
 * **Base de datos:** MySQL / MariaDB.
-* **Frontend:** SPA con Vanilla JavaScript (Fetch API) + Tailwind CSS CDN.
+* **Frontend:** SPA con Vanilla JavaScript (Fetch API) + Tailwind CSS v2 local (archivo estático `tailwind.min.css`).
 * **Servidor local:** XAMPP (Apache + MySQL).
 * **Servidor producción:** Hostinger.
 
@@ -122,18 +122,31 @@ Línea de tiempo. La gestión con el ID más alto determina el "estado actual".
 
 ## 🚀 Historial de Cambios
 
+### v2.5 — Navegación Secuencial, Avance Automático y Refinamiento UI (18 de Abril, 2026 - v2)
+
+* ⏭️ **Navegación Secuencial en Modal:** Se implementó un sistema de botones "Anterior" y "Siguiente" dentro del modal de gestión. Esto permite a los operadores recorrer toda la lista de clientes filtrada sin necesidad de cerrar y abrir el modal para cada legajo, optimizando drásticamente los tiempos de operación.
+* 💾 **Avance Automático al Guardar:** Al registrar una gestión con éxito, el sistema ahora detecta automáticamente si existe un siguiente cliente en la lista y lo abre de forma instantánea. Si es el último de la lista, el modal se cierra solo.
+* 📐 **Layout de Acción Triple:** Se rediseñó la botonera principal del modal unificando en una sola fila el botón "Guardar Gestión" (predominante al centro) con los controles de navegación a los lados, incluyendo un contador dinámico de posición (ej: `5 / 120`).
+* 🎨 **Reorganización de Cabecera:** La barra de información del cliente en el modal se dividió en dos líneas claras:
+  - **Fila 1:** Ubicación (📍), Documento y Fecha de último pago.
+  - **Fila 2:** Números de teléfono y botones de acción rápida.
+* 👁️ **Mejora de Contraste SMS:** Se ajustó el color del botón SMS a un púrpura más oscuro (`bg-purple-700`) para garantizar un contraste legible sobre el fondo gris claro de la cabecera.
+
+### v2.4 — Optimización de Hostinger, UX Móvil Completa y UI Fixes (18 de Abril, 2026)
+
+* 🚀 **Migración a Tailwind CSS Local:** Se discontinuó el uso de Tailwind V3 JIT CDN debido a estrictas políticas de seguridad CSP en resoluciones de Hostinger. Ahora la plataforma opera íntegramente sobre un archivo minificado estático local v2, garantizando su carga independientemente del entorno.
+* 🧹 **Eliminación del Menú Inferior (Bottom Bar):** Se removió de forma permanente el menú de navegación inferior en celulares a pedido de los operadores, delegando toda acción principal en el menú lateral de origen (hamburguesa) para maximizar el área de trabajo vertical visible.
+* 📱 **Tablas con Scroll Horizontal:** Se quitó la responsabilidad de ocultamiento y colapso extremo de las columnas en las tablas para las pantallas pequeñas. Ahora, las tablas mantienen **todas las columnas de información originales** intactas con desplazamiento horizontal transversal, evitando cruces de datos por adaptabilidad.
+* 🎨 **Resolución de Colores Nativos (V2):** Corregido un gran número de visualizaciones desajustadas relacionadas a colores extendidos excluidos en CSS estáticos v2 (como "emerald" y "teal"), los cuales fueron migrados a la paleta clásica "green". Del mismo modo se definieron reglas inline para "Guardar Gestión" habilitando el `.bg-crm-blue` en duro.
+* 🔎 **Ajustes de Cartera Activa:** Se relocalizó la caja del buscador de red por sobre las líneas de filtros para evitar el estrangulamiento de los campos select.
+
 ### v2.3 — Optimización de UX Móvil y Navegación SPA (16 de Abril, 2026)
 
-* 📱 **Navegación Híbrida Móvil:** Implementación de un sistema dual para tablets y celulares:
-  - **Bottom Navigation Bar:** Barra fija inferior con acceso rápido a las secciones principales (Clientes, Dashboard, Usuarios, etc).
-  - **Hamburger Menu (Drawer):** Menú lateral desplegable para acciones secundarias y logout.
-* 📋 **Vista Enriquecida de Clientes (Rich List):** La tabla de clientes ahora es inteligente. En mobile condensa los 7 datos clave en 3 columnas optimizadas:
-  - **Columna Datos:** Legajo + DNI + Monto Vencido + Sucursal (apilados).
-  - **Columna Estado:** Nombre + Estado Actual + Cuotas + Atraso (apilados).
-  - Se habilitó la apertura de ficha con **un solo clic** en cualquier parte de la fila para dispositivos táctiles.
-* 🗂️ **Modal de Gestión con Pestañas (Mobile Tabs):** Rediseño total del modal de cliente para pantallas pequeñas:
-  - **Cabecera Persistente:** Datos del cliente y botones de navegación siempre visibles arriba.
-  - **Sistema de Tabs:** Permite alternar entre el formulario de "Gestión" y la línea de tiempo de "Historial" sin perder el contexto ni scrollear infinitamente.
+* 📱 **Navegación Híbrida Móvil:** Implementación de un sistema dual para tablets y celulares que incluía un menú lateral y herramientas rápidas (Nota: La barra inferior se removió en v2.4).
+* 📋 **Vista de Lista Optimizada:** Apertura de modales con un solo clic en la mesa de resultados de búsqueda táctil agilizando la gestión.
+* 🗂️ **Modal de Gestión con Tabs:** Rediseño total del modal de cliente para pantallas pequeñas:
+  - **Cabecera Persistente:** Datos del cliente e indicadores críticos siempre fijos en el top visual.
+  - **Sistema de Tabs:** Control deslizante de pestañas limitando el historial y el control de gestiones para abolición de scrolls inifitos.
   - En desktop, se mantiene el diseño de doble columna original (side-by-side).
 
 ### v2.2 — Búsqueda por Teléfono e Identificación de Coincidencias (15 de Abril, 2026)
