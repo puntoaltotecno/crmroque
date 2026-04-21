@@ -390,16 +390,11 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
                 </div>
             </div>
             
-            <!-- Toggles for contact buttons -->
             <div class="flex flex-wrap items-center gap-6 bg-white px-6 py-3 border border-gray-100 rounded-xl shadow-sm mb-4">
                 <span class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Canales visibles:</span>
                 <label class="flex items-center space-x-2 cursor-pointer">
-                    <input type="checkbox" id="toggleWaWeb" class="form-checkbox h-3 w-3 text-emerald-600 rounded" onchange="saveContactToggles()">
-                    <span class="text-[9px] font-bold uppercase text-gray-600">🌐 WA Web</span>
-                </label>
-                <label class="flex items-center space-x-2 cursor-pointer">
-                    <input type="checkbox" id="toggleWaApp" class="form-checkbox h-3 w-3 text-teal-600 rounded" onchange="saveContactToggles()">
-                    <span class="text-[9px] font-bold uppercase text-gray-600">💻 WA App</span>
+                    <input type="checkbox" id="toggleWa" class="form-checkbox h-3 w-3 text-emerald-600 rounded" onchange="saveContactToggles()">
+                    <span class="text-[9px] font-bold uppercase text-gray-600">💬 WhatsApp</span>
                 </label>
                 <label class="flex items-center space-x-2 cursor-pointer">
                     <input type="checkbox" id="toggleLlamar" class="form-checkbox h-3 w-3 text-blue-600 rounded" onchange="saveContactToggles()">
@@ -412,8 +407,8 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
             </div>
 
             <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden relative">
-                <div class="overflow-x-auto custom-scroll">
-                    <table class="w-full text-sm">
+                <div class="overflow-x-auto custom-scroll w-full">
+                    <table class="min-w-max w-full text-sm">
                         <thead class="bg-gray-50 border-b text-gray-400 font-extrabold uppercase text-[9px] tracking-widest">
                             <tr>
                                 <?php if($can_assign): ?>
@@ -423,7 +418,7 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
                                 <th class="px-6 py-3 text-center whitespace-nowrap">Gestión / Atraso</th>
                                 <th class="px-6 py-3 text-right whitespace-nowrap">Vencido</th>
                                 <th class="px-6 py-3 text-center whitespace-nowrap">Asignado</th>
-                                <th class="pr-6 pl-4 py-3 text-center whitespace-nowrap">Acciones</th>
+                                <th class="pr-6 pl-4 py-3 text-center whitespace-nowrap w-32">Acciones</th>
                             </tr>
                         </thead>
                         <tbody id="lista" class="divide-y divide-slate-100"></tbody>
@@ -1131,7 +1126,7 @@ const load = async () => {
                 let paddingLegajo = canAssign ? 'px-2' : 'px-8';
 
                 let opBadge = canAssign ? 
-                    `<select onchange="cambiarAsignacionRapida('${c.legajo}', this.value)" onclick="event.stopPropagation()" class="mt-2 w-full max-w-[120px] bg-white border border-slate-200 rounded-lg text-[9px] font-black uppercase outline-none py-1 px-1">
+                    `<select onchange="cambiarAsignacionRapida('${c.legajo}', this.value)" onclick="event.stopPropagation()" class="mt-2 w-[100px] bg-white border border-slate-200 rounded-lg text-[9px] font-black uppercase outline-none py-1 px-1">
                         <option value="">👤 Sin Asignar</option>${operadoresList.map(o => `<option value="${o.id}" ${c.operador_id == o.id ? 'selected' : ''}>👤 ${o.nombre.split(' ')[0]}</option>`).join('')}
                     </select>` : 
                     `<p class="mt-2 text-[9px] font-black text-blue-500 uppercase tracking-widest">👤 ${c.operador_asignado?.split(' ')[0] || 'SIN ASIGNAR'}</p>`;
@@ -1145,18 +1140,12 @@ const load = async () => {
 
                 return `<tr class="hover:bg-blue-50/50 cursor-pointer transition border-l-[6px] border-l-${c.semaforo === 'blanco' ? 'transparent' : (c.semaforo === 'rojo' ? 'rose-500' : (c.semaforo === 'amarillo' ? 'amber-400' : 'emerald-500'))}" onclick="openModal(${cJson})">
                     ${checkHTML}
-                    <td class="${paddingLegajo} py-3 md:py-4 whitespace-nowrap">
-                        <div class="flex flex-col">
+                    <td class="${paddingLegajo} py-3 md:py-4">
+                        <div class="flex flex-col gap-0.5">
                             <p class="font-bold text-slate-800 text-xs flex items-center gap-1">${c.legajo} ${badgeMoto} ${badgeMatch}</p>
-                            <p class="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">${c.nro_documento}</p>
-                        </div>
-                    </td>
-                    <td class="px-2 md:px-6 py-3 md:py-4">
-                        <div class="flex flex-col">
-                            <p class="font-bold uppercase text-slate-800 text-[11px] truncate max-w-[140px] md:max-w-[200px] lg:max-w-[240px]" title="${c.razon_social}">${c.razon_social}</p>
-                            <div class="flex flex-wrap items-center gap-2 mt-1">
-                                <p class="text-[8px] font-bold text-blue-500 uppercase italic whitespace-nowrap">${c.sucursal || 'Central'}</p>
-                            </div>
+                            <p class="text-[8px] font-bold text-slate-400 uppercase tracking-widest">${c.nro_documento}</p>
+                            <p class="font-bold uppercase text-slate-800 text-[11px] truncate max-w-[160px] md:max-w-[220px] lg:max-w-[260px]" title="${c.razon_social}">${c.razon_social}</p>
+                            <p class="text-[8px] font-bold text-blue-500 uppercase italic whitespace-nowrap">${c.sucursal || 'Central'}</p>
                         </div>
                     </td>
                     <td class="px-6 py-3 md:py-4 text-center whitespace-nowrap">
@@ -1164,8 +1153,8 @@ const load = async () => {
                         ${c.dias_atraso > 0 ? `<p class="text-[9px] font-black text-rose-500 uppercase">${c.dias_atraso} días</p>` : ''}
                     </td>
                     <td class="px-6 py-3 md:py-4 text-right whitespace-nowrap"><p class="font-black text-slate-900 text-sm">${trMonto}</p></td>
-                    <td class="px-6 py-3 md:py-4 text-center whitespace-nowrap"><span class="px-3 py-1 rounded-full text-[9px] font-black uppercase ${badgeClass}">${labelEstado}</span><div class="flex justify-center">${opBadge}</div></td>
-                    <td class="pr-4 md:pr-6 pl-1 py-3 md:py-4 text-center whitespace-nowrap"><button onclick="event.stopPropagation(); openModal(${cJson})" class="bg-blue-600 text-white px-3 md:px-4 py-2 rounded-lg text-[9px] font-black uppercase hover:bg-blue-700 transition shadow-sm">Gestionar</button></td>
+                    <td class="px-2 py-3 md:py-4 text-center whitespace-nowrap max-w-[140px]"><span class="px-3 py-1 rounded-full text-[9px] font-black uppercase ${badgeClass}">${labelEstado}</span><div class="flex justify-center">${opBadge}</div></td>
+                    <td class="pr-4 md:pr-6 pl-2 py-3 md:py-4 text-center whitespace-nowrap w-32"><button onclick="event.stopPropagation(); openModal(${cJson})" class="bg-blue-600 text-white px-3 md:px-4 py-2 rounded-lg text-[9px] font-black uppercase hover:bg-blue-700 transition shadow-sm whitespace-nowrap min-w-max">Gestionar</button></td>
                 </tr>`;
             }).join('');
             updateBulkUI();
@@ -1299,10 +1288,23 @@ const load = async () => {
         searchTimeout = setTimeout(() => { load(); stats(); }, 400);
     };
 
+    function redirigirWA(nro, msg) {
+        const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
+        if (isMobile) {
+            window.open(`https://api.whatsapp.com/send?phone=${nro}&text=${msg}`, '_blank');
+        } else {
+            const op = confirm("¿Deseas usar WhatsApp WEB?\n\n(Aceptar = WEB, Cancelar = APP Escritorio)");
+            if (op) {
+                window.open(`https://web.whatsapp.com/send?phone=${nro}&text=${msg}`, 'whatsapp_crm');
+            } else {
+                window.open(`whatsapp://send?phone=${nro}&text=${msg}`, '_blank');
+            }
+        }
+    }
+
     function saveContactToggles() {
         const prefs = {
-            waWeb: document.getElementById('toggleWaWeb').checked,
-            waApp: document.getElementById('toggleWaApp').checked,
+            wa: document.getElementById('toggleWa').checked,
             llamar: document.getElementById('toggleLlamar').checked,
             sms: document.getElementById('toggleSms').checked
         };
@@ -1312,9 +1314,8 @@ const load = async () => {
     function loadContactToggles() {
         try {
             const saved = localStorage.getItem('crm_contact_prefs');
-            const prefs = saved ? JSON.parse(saved) : {waWeb: true, waApp: false, llamar: false, sms: false};
-            document.getElementById('toggleWaWeb').checked = prefs.waWeb;
-            document.getElementById('toggleWaApp').checked = prefs.waApp;
+            const prefs = saved ? JSON.parse(saved) : {wa: true, llamar: false, sms: false};
+            document.getElementById('toggleWa').checked = prefs.wa;
             document.getElementById('toggleLlamar').checked = prefs.llamar;
             document.getElementById('toggleSms').checked = prefs.sms;
         } catch(e) { }
@@ -1467,41 +1468,18 @@ const load = async () => {
                     const nroTel = '+' + nroLimpio;
                     const smsBody = encodeURIComponent(`Hola, me comunico de Landy Confort. Ref: ${legajoCliente}`);
                     
-                    // Leer preferencias guardadas (en localStorage o estado de los checks)
-                    let prefs = {waWeb: true, waApp: false, llamar: false, sms: false};
+                    // Leer preferencias guardadas
+                    let prefs = {wa: true, llamar: false, sms: false};
                     try { const saved = localStorage.getItem('crm_contact_prefs'); if (saved) prefs = JSON.parse(saved); } catch(e) {}
                     
-                    if (isMobile) {
-                        // En celulares, mostramos la opción nativa si el usuario quiere usar waWeb o waApp
-                        if (prefs.waWeb || prefs.waApp) {
-                            const btnMobil = document.createElement('a');
-                            btnMobil.href = `https://api.whatsapp.com/send?phone=${nroLimpio}&text=${msgEnc}`;
-                            btnMobil.target = '_blank';
-                            btnMobil.title = `WhatsApp Móvil ${raw}`;
-                            btnMobil.className = 'inline-flex items-center gap-1 bg-green-500 hover:bg-green-600 text-white text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full transition ml-1';
-                            btnMobil.innerHTML = '💬 WA';
-                            waContainer.appendChild(btnMobil);
-                        }
-                    } else {
-                        // Desktop
-                        if (prefs.waApp) {
-                            const btnApp = document.createElement('a');
-                            btnApp.href = `whatsapp://send?phone=${nroLimpio}&text=${msgEnc}`;
-                            btnApp.title = `Abrir en WhatsApp Desktop (PC)`;
-                            btnApp.className = 'inline-flex items-center gap-1 bg-green-600 hover:bg-green-700 text-white text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full transition ml-1';
-                            btnApp.innerHTML = '💻 APP';
-                            waContainer.appendChild(btnApp);
-                        }
-                        
-                        if (prefs.waWeb) {
-                            const btnWeb = document.createElement('a');
-                            btnWeb.href = `https://web.whatsapp.com/send?phone=${nroLimpio}&text=${msgEnc}`;
-                            btnWeb.target = 'whatsapp_crm';
-                            btnWeb.title = `Abrir en WhatsApp Web`;
-                            btnWeb.className = 'inline-flex items-center gap-1 bg-green-500 hover:bg-green-600 text-white text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full transition ml-1';
-                            btnWeb.innerHTML = '🌐 WEB';
-                            waContainer.appendChild(btnWeb);
-                        }
+                    if (prefs.wa) {
+                        const btnWA = document.createElement('button');
+                        btnWA.type = 'button';
+                        btnWA.onclick = () => redirigirWA(nroLimpio, msgEnc);
+                        btnWA.title = `Contactar por WhatsApp`;
+                        btnWA.className = 'inline-flex items-center gap-1 bg-green-500 hover:bg-green-600 text-white text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full transition ml-1 cursor-pointer';
+                        btnWA.innerHTML = '💬 WhatsApp';
+                        waContainer.appendChild(btnWA);
                     }
                     
                     if (prefs.llamar) {
@@ -1733,14 +1711,9 @@ const load = async () => {
                     stats(); 
                     loadNotificaciones();
                     if(canAssign) loadDashboard();
-                    // Avanzar al siguiente cliente automáticamente
-                    const lista = window.listaClientes || [];
-                    const siguienteIdx = (window.clienteActualIdx ?? -1) + 1;
-                    if (siguienteIdx < lista.length) {
-                        openModal(lista[siguienteIdx]);
-                    } else {
-                        closeModal();
-                    }
+                    // Permanecer en el mismo cliente, recargar su historial y limpiar formulario
+                    await cargarHistorial(fd.get('legajo'));
+                    cancelarEdicion();
                 } else { alert("Error: " + d.message); }
             } catch(err) { alert("Error de conexión al guardar."); } 
             finally { btn.disabled = false; btn.innerText = textOrig; }
@@ -1789,26 +1762,7 @@ const load = async () => {
         let nroLimpio = soloDigitos.replace(/^0/, '');
         if (!nroLimpio.startsWith('549')) nroLimpio = '549' + nroLimpio;
         
-        let prefs = {waWeb: true, waApp: false};
-        try { const saved = localStorage.getItem('crm_contact_prefs'); if(saved) prefs = JSON.parse(saved); } catch(e){}
-        const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
-        
-        let url = '';
-        if (isMobile) {
-            url = `https://api.whatsapp.com/send?phone=${nroLimpio}&text=${msgEnc}`;
-        } else {
-            if (prefs.waApp) {
-                url = `whatsapp://send?phone=${nroLimpio}&text=${msgEnc}`;
-            } else {
-                url = `https://web.whatsapp.com/send?phone=${nroLimpio}&text=${msgEnc}`;
-            }
-        }
-        
-        if (isMobile || prefs.waApp) {
-            window.open(url, '_blank');
-        } else {
-            window.open(url, 'whatsapp_crm');
-        }
+        redirigirWA(nroLimpio, msgEnc);
     }
 
     function closeModal() { document.getElementById('mContent').classList.replace('scale-100', 'scale-95'); setTimeout(() => document.getElementById('modal').classList.replace('flex', 'hidden'), 300); }

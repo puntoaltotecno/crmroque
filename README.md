@@ -122,15 +122,15 @@ Línea de tiempo. La gestión con el ID más alto determina el "estado actual".
 
 ## 🚀 Historial de Cambios
 
-### v2.5 — Navegación Secuencial, Avance Automático y Refinamiento UI (18 de Abril, 2026 - v2)
+### v2.7 — Unificación WhatsApp, Consolidación de Tabla y Flujo Manual (21 de Abril, 2026)
 
-* ⏭️ **Navegación Secuencial en Modal:** Se implementó un sistema de botones "Anterior" y "Siguiente" dentro del modal de gestión. Esto permite a los operadores recorrer toda la lista de clientes filtrada sin necesidad de cerrar y abrir el modal para cada legajo, optimizando drásticamente los tiempos de operación.
-* 💾 **Avance Automático al Guardar:** Al registrar una gestión con éxito, el sistema ahora detecta automáticamente si existe un siguiente cliente en la lista y lo abre de forma instantánea. Si es el último de la lista, el modal se cierra solo.
-* 📐 **Layout de Acción Triple:** Se rediseñó la botonera principal del modal unificando en una sola fila el botón "Guardar Gestión" (predominante al centro) con los controles de navegación a los lados, incluyendo un contador dinámico de posición (ej: `5 / 120`).
-* 🎨 **Reorganización de Cabecera:** La barra de información del cliente en el modal se dividió en dos líneas claras:
-  - **Fila 1:** Ubicación (📍), Documento y Fecha de último pago.
-  - **Fila 2:** Números de teléfono y botones de acción rápida.
-* 👁️ **Mejora de Contraste SMS:** Se ajustó el color del botón SMS a un púrpura más oscuro (`bg-purple-700`) para garantizar un contraste legible sobre el fondo gris claro de la cabecera.
+* 📱 **WhatsApp Inteligente (`redirigirWA`):** Se eliminó la doble opción Web/App en los filtros. Ahora existe un único toggle **"WhatsApp"**. Al usarlo en PC, el sistema detecta y consulta al operador si desea usar la versión Web o Desktop, centralizando la lógica y reduciendo clics innecesarios.
+* 📋 **Consolidación de Tabla de Clientes:** Se fusionaron las columnas dispersas en una sola celda maestra **"Cliente"** que agrupa: Legajo, Documento, Razón Social y Sucursal. Esto resolvió el desalineamiento estructural de los headers y mejoró la lectura en móviles.
+* 🛑 **Fin del Avance Automático:** A pedido de los operadores, se desactivó el salto automático al siguiente cliente tras guardar. Ahora el modal permanece en el cliente actual, actualiza su historial instantáneamente y limpia el formulario, permitiendo revisar la carga antes de continuar manualmente.
+* 🐛 **Fix de Desbordamiento y Doble Scroll:** Se eliminaron contenedores anidados con `overflow-x-auto` que causaban que el botón "Gestionar" se cortara en ciertas resoluciones. La tabla ahora utiliza un solo contenedor de desplazamiento suave (`custom-scroll`).
+* 🧹 **Limpieza UI de Contactos:** Se redujeron los canales visibles a lo esencial: WhatsApp, Llamar y SMS, despejando la barra de filtros superior.
+
+### v2.6 — Refinando Estética y Memoria (21 de Abril, 2026)
 
 ### v2.4 — Optimización de Hostinger, UX Móvil Completa y UI Fixes (18 de Abril, 2026)
 
