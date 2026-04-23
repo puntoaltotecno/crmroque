@@ -189,6 +189,18 @@ try {
 
     $pdo->commit();
 
+    // ── NUEVO: Snapshot Estadístico de Evolución de Deuda (v2.9.1) ──
+    $pdo->exec("
+        INSERT INTO historial_deuda (legajo, monto_vencido, sucursal, operador_id, fecha_registro)
+        SELECT c.legajo, c.total_vencido, c.sucursal, a.usuario_id, CURDATE()
+        FROM clientes c
+        LEFT JOIN asignaciones a ON c.legajo = a.legajo
+        ON DUPLICATE KEY UPDATE 
+            monto_vencido = VALUES(monto_vencido),
+            sucursal = VALUES(sucursal),
+            operador_id = VALUES(operador_id)
+    ");
+
     $msg = "Nuevos: $cnt_insert | Actualizados: $cnt_update | Pasados a Al Día ($0): $cnt_al_dia";
     if (count($errores) > 0) $msg .= "\nErrores detectados: " . count($errores);
 

@@ -15,14 +15,14 @@ if ($rol_actual !== 'admin' && $rol_actual !== 'colaborador') exit;
 $action = $_GET['action'] ?? '';
 
 if ($action === 'list') {
-    echo json_encode($pdo->query("SELECT id, nombre, email as usuario, rol FROM usuarios ORDER BY nombre ASC")->fetchAll());
+    echo json_encode($pdo->query("SELECT id, nombre, email as usuario, rol, activo FROM usuarios ORDER BY nombre ASC")->fetchAll());
 } 
-elseif ($action === 'delete') {
-    // Solo Admin puede borrar
+elseif ($action === 'toggle') {
+    // Solo Admin puede desactivar/activar
     if ($rol_actual !== 'admin') { echo json_encode(['success' => false, 'message' => 'Solo administradores.']); exit; }
     
     $id = $_POST['id'];
-    if($id != $_SESSION['user_id']) $pdo->prepare("DELETE FROM usuarios WHERE id = ?")->execute([$id]);
+    if($id != $_SESSION['user_id']) $pdo->prepare("UPDATE usuarios SET activo = NOT activo WHERE id = ?")->execute([$id]);
     echo json_encode(['success' => true]);
 } 
 elseif ($action === 'save') {

@@ -24,25 +24,22 @@ El proyecto está construido de manera plana. Todos los archivos se encuentran e
 3. **Operador:** Visualización bloqueada para métricas financieras globales. Solo ve su propia agenda. 
    - **Restricción de Seguridad v2.6:** El operador **NUNCA** puede categorizar clientes en estado "Al Día" por su cuenta (validado en backend y frontend). El sistema bloquea interacciones si el cliente está "Al Día".
 
-## Reglas de Negocio Vitales (v2.6) ⚙️
-- **Gestión de Estados:** Se ha incorporado el estado **'Carta'** como categoría oficial (badge fucsia).
+## Reglas de Negocio Vitales (v2.9.1) ⚙️
+- **v2.9.1 — Histórico y Analítica:** Se incorporó la tabla `historial_deuda` para capturar snapshots diarios/periódicos de deuda por legajo, sucursal y operador.
+- **Atribución "Al día":** Los operadores reciben crédito por los éxitos "Al día" en sus carteras asignadas, independientemente de quién ejecutó la acción (Admin/CSV), validado mediante JOINs con la tabla `asignaciones`.
+- **Evolución de Deuda:** Reportes dinámicos agrupados por Cliente, Sucursal u Operador con visualización del histórico.
+- **Filtros Globales con Límites:** Búsqueda avanzada integrada en reportes (Cliente, Operador, Fecha) con límites de visualización (Top 25/50/All) para performance.
+- **Exportación Robusta:** La exportación ignora los límites de la UI para generar archivos CSV/JSON con el 100% de los datos filtrados.
+- **Gestión de Estados:** Se mantiene el estado **'Carta'** como categoría oficial.
 - **Buscador Inteligente:** Rastreo por Legajo, DNI, Razón Social, Sucursal y **Número de Teléfono** (insensible al formato).
-- **Importación CSV y Reingreso:** Si un registro en CSV tiene `total_vencido <= 0`, pasa a **'Al Día'**. Si un cliente estaba 'Al Día' pero el nuevo CSV trae deuda, se resetea automáticamente a **'Pendiente'** (Sin Gestión).
-- **La clave de negocio universal es `legajo`**: NUNCA utilizar el ID interno para relaciones.
-- **Segmento Moto:** Se identifica mediante la columna `moto` (TinyInt) en la tabla `clientes` (v1.8).
-- **Auditoría (Borrado Lógico):** Eliminación mediante `UPDATE gestiones_historial SET oculta = 1`.
+- **Importación CSV y Reingreso:** Los snapshots de deuda se disparan automáticamente en cada importación.
 
 ## Directrices para el Código Asistido (LLMs) 🤖
-1. **Estilos:** Usar `TailwindCSS v2` localmente. Bordes `rounded-3xl` y sombras suaves.
+1. **Estilos:** Usar `TailwindCSS v2` localmente.
 2. **Consultas:** Uso obligatorio de **PDO con Marcadores**.
-- **Navegación:** Se ha ELIMINADO el avance automático tras guardar una gestión (v2.7). El operador permanece en el mismo cliente para auditar su propia carga. Utilizar `navegarCliente(dir)` solo para flujo manual.
-4. **Respuestas API:** Evitar trazas de error en texto; usar siempre JSON `success: false, message: "..."`.
-5. **Comunicación Unificada:** WhatsApp se unifica en un solo botón/toggle que gestiona inteligentemente la redirección vía `redirigirWA(nro, msg)`.
-
-## Directriz de Diseño Responsivo y UX Móvil (v2.7+) 📱
-1. **Navigation:** Uso exclusivo de `Drawer` lateral en móviles.
-2. **Tablas:** Solo un contenedor de scroll horizontal activo (`overflow-x-auto`) para evitar conflictos de recorte.
-3. **Modales:** 100% viewport en móvil. Cabecera fija con dos filas de información y Tab Switcher entre Gestión e Historial.
+3. **Métricas:** Para reportes de operador, siempre usar subconsultas sobre `asignaciones` para medir éxitos "Al día".
+4. **Respuestas API:** Siempre JSON.
+5. **Comunicación:** WhatsApp unificado con detección inteligente de Web/App.
 
 ---
-*Última actualización de memoria: 2026-04-21 - Versión Operativa 2.7*
+*Última actualización de memoria: 2026-04-22 - Versión Operativa 2.9.1*

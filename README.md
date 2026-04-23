@@ -122,6 +122,25 @@ Línea de tiempo. La gestión con el ID más alto determina el "estado actual".
 
 ## 🚀 Historial de Cambios
 
+### v2.9.1 — Historial de Deuda y Analítica Avanzada (22 de Abril, 2026)
+
+* 📈 **Evolución de Deuda:** Implementación de la tabla `historial_deuda` y motor de snapshots automáticos durante la importación CSV. Permite visualizar la evolución del monto vencido día por día.
+* 🎯 **Métricas de Operador Corregidas:** Se optimizó la atribución del estado "Al Día" en los reportes de ranking y efectividad. Ahora el sistema reconoce los éxitos basándose en la asignación del cliente, permitiendo que el trabajo de los operadores se refleje correctamente aunque el cambio de estado lo realice un administrador.
+* 🔍 **Filtros Globales en Reportes:** Se añadieron selectores de Operador, buscador por Cliente y límite de resultados (Top 25/50/All) para mejorar el rendimiento de carga.
+* 📥 **Exportación Completa:** Se independizó la exportación (CSV/JSON) de los límites visuales de la interfaz, permitiendo descargar el conjunto total de datos filtrados.
+
+### v2.9 — Optimización UI/UX del Panel de Acciones Masivas (22 de Abril, 2026)
+
+* 🛠️ **Acciones Masivas Responsivas:** Se rediseñó el panel `#bulk-actions` para ser completamente flexible (`flex-wrap`). Los controles se agruparon en cápsulas visuales, eliminando la barra de desplazamiento horizontal y mejorando el flujo en dispositivos móviles y tablets.
+* 👁️ **Contraste de Selectores:** Se corrigió un problema de legibilidad en los menús desplegables sobre fondos oscuros. Ahora las opciones mantienen un contraste alto (texto oscuro sobre fondo blanco) en todos los navegadores y sistemas operativos.
+* 📏 **Diseño Compacto:** Se optimizó el acolchado y espaciado del panel inferior para maximizar el área de trabajo útil de la tabla de clientes.
+
+### v2.8 — Desactivación Lógica de Operadores (Soft Delete) (22 de Abril, 2026)
+
+* 🔒 **Bloqueo/Deshabilitación (Soft Delete):** Se reemplazó la eliminación física de operadores por una desactivación lógica (`activo = 0`). Esto preserva intactas todas las relaciones de base de datos (asignaciones e historial de gestiones) previniendo que los clientes queden huérfanos y garantizando la coherencia de las métricas.
+* 👥 **Gestión de Personal:** Los administradores ahora ven a los operadores desactivados con una etiqueta "Inactivo" en la lista de gestión. Un operador inactivo no puede iniciar sesión ni ser asignado a nuevos clientes (se excluye de los menús desplegables), pero su historial es completamente trazable.
+* 🔄 **Reactivación Inmediata:** Los operadores desactivados pueden ser reactivados en cualquier momento mediante el nuevo botón dinámico Activar/Desactivar.
+
 ### v2.7 — Unificación WhatsApp, Consolidación de Tabla y Flujo Manual (21 de Abril, 2026)
 
 * 📱 **WhatsApp Inteligente (`redirigirWA`):** Se eliminó la doble opción Web/App en los filtros. Ahora existe un único toggle **"WhatsApp"**. Al usarlo en PC, el sistema detecta y consulta al operador si desea usar la versión Web o Desktop, centralizando la lógica y reduciendo clics innecesarios.

@@ -48,6 +48,7 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
         .badge-otro { background: #f3e8ff; color: #6b21a8; }
         .badge-sin_gestion { background: #f8fafc; color: #94a3b8; border: 1px solid #e2e8f0; }
         .badge-al_dia { background: #ccfbf1; color: #0f766e; }
+        #bulk-actions select option { color: #1e293b; background-color: white; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900 min-h-screen" onclick="cerrarDropdownNoti()">
@@ -523,26 +524,54 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
             <!-- Controles de filtro -->
             <div class="bg-white p-6 md:p-8 rounded-xl border border-gray-100 shadow-sm">
                 <h3 class="text-xs font-extrabold text-gray-400 uppercase tracking-widest mb-6">Filtros de Análisis</h3>
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                <div class="grid grid-cols-1 md:grid-cols-6 gap-3 items-end">
                     <div>
                         <label class="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Desde</label>
-                        <input type="date" id="rep-desde" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-700 outline-none">
+                        <input type="date" id="rep-desde" class="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-[10px] font-bold text-gray-700 outline-none">
                     </div>
                     <div>
                         <label class="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Hasta</label>
-                        <input type="date" id="rep-hasta" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-700 outline-none">
+                        <input type="date" id="rep-hasta" class="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-[10px] font-bold text-gray-700 outline-none">
                     </div>
                     <div>
-                        <label class="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Período Rápido</label>
-                        <select id="rep-periodo" onchange="aplicarPeriodo()" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-700 outline-none cursor-pointer">
+                        <label class="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Rápido</label>
+                        <select id="rep-periodo" onchange="aplicarPeriodo()" class="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-[10px] font-bold text-gray-700 outline-none cursor-pointer">
                             <option value="hoy">Hoy</option>
                             <option value="semana" selected>Últimos 7 días</option>
                             <option value="mes">Últimos 30 días</option>
-                            <option value="trimestre">Últimos 90 días</option>
-                            <option value="personalizado">Personalizado</option>
+                            <option value="trimestre">90 días</option>
+                            <option value="personalizado">Per...</option>
                         </select>
                     </div>
-                    <button onclick="cargarResumenGeneral()" class="bg-crm-blue text-white px-8 py-3 rounded-xl text-[10px] font-black uppercase shadow-sm hover:opacity-90 transition">Actualizar</button>
+                    <div>
+                        <label class="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Operador</label>
+                        <select id="rep-operador" class="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-[10px] font-bold text-gray-700 outline-none cursor-pointer text-gray-900 appearance-none">
+                            <option value="" class="text-gray-900">(Todos)</option>
+                            <?php 
+                            $stmtOp = $pdo->query("SELECT id, nombre FROM usuarios WHERE rol = 'operador' AND activo = 1 AND id != 42");
+                            while ($op = $stmtOp->fetch()) {
+                                echo '<option class="text-gray-900" value="'.$op['id'].'">'.htmlspecialchars($op['nombre']).'</option>';
+                            }
+                            ?>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Buscar / Cliente</label>
+                        <input type="text" id="rep-cliente" placeholder="Legajo, Nombre..." class="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-[10px] font-bold text-gray-700 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Líneas (Límite)</label>
+                        <select id="rep-limit" class="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-[10px] font-bold text-gray-700 outline-none cursor-pointer text-gray-900">
+                            <option value="25">Top 25</option>
+                            <option value="50" selected>Top 50</option>
+                            <option value="100">Top 100</option>
+                            <option value="500">Top 500</option>
+                            <option value="999999">Todas</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="mt-4 flex justify-end">
+                    <button onclick="cargarResumenGeneral();if(typeof reporteActual !== 'undefined' && reporteActual)cambiarReporte(reporteActual);" class="bg-crm-blue text-white px-8 py-3 rounded-xl text-[10px] font-black uppercase shadow-sm hover:opacity-90 transition">Actualizar Gráficos</button>
                 </div>
             </div>
 
@@ -561,9 +590,9 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
                     <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Clientes Únicos</p>
                     <h4 id="rep-clientes" class="text-3xl font-bold text-gray-800">0</h4>
                 </div>
-                <div class="bg-emerald-500 p-6 rounded-xl text-white custom-shadow">
-                    <p class="text-[9px] font-black text-emerald-100 uppercase tracking-widest mb-2">Al Día Logrados</p>
-                    <h4 id="rep-al-dia" class="text-3xl font-bold">0</h4>
+                <div class="bg-white p-6 rounded-xl border border-emerald-100 custom-shadow">
+                    <p class="text-[9px] font-black text-emerald-600 uppercase tracking-widest mb-2">Al Día Logrados</p>
+                    <h4 id="rep-al-dia" class="text-3xl font-bold text-emerald-700">0</h4>
                 </div>
             </div>
 
@@ -576,6 +605,9 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
                     <button onclick="cambiarReporte('matriz')" id="rep-tab-matriz" class="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400 border-b-2 border-transparent whitespace-nowrap hover:text-crm-blue transition">Matriz</button>
                     <button onclick="cambiarReporte('clientes')" id="rep-tab-clientes" class="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400 border-b-2 border-transparent whitespace-nowrap hover:text-crm-blue transition">Top Clientes</button>
                     <button onclick="cambiarReporte('diario')" id="rep-tab-diario" class="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400 border-b-2 border-transparent whitespace-nowrap hover:text-crm-blue transition">Diario</button>
+                    <button onclick="cambiarReporte('evol_cliente')" id="rep-tab-evol_cliente" class="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400 border-b-2 border-transparent whitespace-nowrap hover:text-crm-blue transition">Ev. Cliente</button>
+                    <button onclick="cambiarReporte('evol_sucursal')" id="rep-tab-evol_sucursal" class="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400 border-b-2 border-transparent whitespace-nowrap hover:text-crm-blue transition">Ev. Sucursal</button>
+                    <button onclick="cambiarReporte('evol_operador')" id="rep-tab-evol_operador" class="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400 border-b-2 border-transparent whitespace-nowrap hover:text-crm-blue transition">Ev. Operador</button>
                 </div>
                 <div id="rep-contenido" class="p-6 md:p-8 min-h-[400px]">
                     <p class="text-center py-20 text-gray-400 font-bold text-[10px] uppercase tracking-widest">Seleccione un período para comenzar.</p>
@@ -627,30 +659,39 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
         </div>
     </div>
     
-    <div id="bulk-actions" class="hidden fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-crm-dark-blue p-4 rounded-xl shadow-2xl flex items-center gap-4 z-50 border border-gray-700 w-[95%] max-w-4xl overflow-x-auto custom-scroll">
-        <span id="bulk-count" class="text-blue-300 font-extrabold text-[10px] px-4 whitespace-nowrap uppercase tracking-widest">0 seleccionados</span>
-        <div class="w-px h-6 bg-gray-700 shrink-0"></div>
-        <select id="masivo_operador" class="bg-white/10 text-white border border-white/20 text-[10px] px-4 py-2 rounded-lg outline-none font-bold uppercase">
-            <option value="" class="text-gray-900">👤 Asignar a...</option>
-            <option value="0" class="text-gray-900">Desasignar a todos</option>
-        </select>
-        <button onclick="ejecutarMasivo('asignar_operador')" class="bg-crm-blue text-white px-5 py-2 rounded-lg text-[10px] font-black uppercase hover:opacity-90 transition shrink-0">Aplicar</button>
-        <div class="w-px h-6 bg-gray-700 shrink-0"></div>
-        <select id="masivo_estado" class="bg-white/10 text-white border border-white/20 text-[10px] px-4 py-2 rounded-lg outline-none font-bold uppercase">
-            <option value="" class="text-gray-900">Cambiar Estado...</option>
-            <option value="al_dia" class="text-gray-900">Al Día</option>
-            <option value="promesa" class="text-gray-900">Promesa de Pago</option>
-            <option value="no_responde" class="text-gray-900">No Responde</option>
-            <option value="no_corresponde" class="text-gray-900">No Corresponde</option>
-            <option value="llamar" class="text-gray-900">Llamar luego</option>
-            <option value="numero_baja" class="text-gray-900">Nro de Baja</option>
-            <option value="carta" class="text-gray-900">Carta</option>
-            <option value="otro" class="text-gray-900">Otro</option>
-        </select>
-        <button onclick="ejecutarMasivo('cambiar_estado')" class="bg-crm-blue text-white px-5 py-2 rounded-lg text-[10px] font-black uppercase hover:opacity-90 transition shrink-0">Aplicar</button>
+    <div id="bulk-actions" class="hidden fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-crm-dark-blue p-2 px-4 rounded-2xl shadow-2xl flex flex-wrap items-center justify-center gap-x-6 gap-y-2 z-50 border border-white/10 w-[98%] max-w-5xl transition-all duration-300">
+        <!-- Grupo Contador -->
+        <div class="flex items-center gap-3">
+            <span id="bulk-count" class="text-blue-300 font-extrabold text-[10px] whitespace-nowrap uppercase tracking-widest pl-2">0 seleccionados</span>
+        </div>
+
+        <!-- Grupo Operador -->
+        <div class="flex items-center gap-2 bg-white/5 p-1 rounded-xl border border-white/10">
+            <select id="masivo_operador" class="bg-transparent text-white text-[10px] px-3 py-1.5 outline-none font-bold uppercase min-w-[140px]">
+                <option value="" class="text-gray-900">👤 Asignar a...</option>
+                <option value="0" class="text-gray-900">Desasignar a todos</option>
+            </select>
+            <button onclick="ejecutarMasivo('asignar_operador')" class="bg-crm-blue text-white px-4 py-1.5 rounded-lg text-[9px] font-black uppercase hover:brightness-110 transition shrink-0">Aplicar</button>
+        </div>
+
+        <!-- Grupo Estado -->
+        <div class="flex items-center gap-2 bg-white/5 p-1 rounded-xl border border-white/10">
+            <select id="masivo_estado" class="bg-transparent text-white text-[10px] px-3 py-1.5 outline-none font-bold uppercase min-w-[140px]">
+                <option value="" class="text-gray-900">Cambiar Estado...</option>
+                <option value="al_dia" class="text-gray-900">Al Día</option>
+                <option value="promesa" class="text-gray-900">Promesa de Pago</option>
+                <option value="no_responde" class="text-gray-900">No Responde</option>
+                <option value="no_corresponde" class="text-gray-900">No Corresponde</option>
+                <option value="llamar" class="text-gray-900">Llamar luego</option>
+                <option value="numero_baja" class="text-gray-900">Nro de Baja</option>
+                <option value="carta" class="text-gray-900">Carta</option>
+                <option value="otro" class="text-gray-900">Otro</option>
+            </select>
+            <button onclick="ejecutarMasivo('cambiar_estado')" class="bg-crm-blue text-white px-4 py-1.5 rounded-lg text-[9px] font-black uppercase hover:brightness-110 transition shrink-0">Aplicar</button>
+        </div>
+
         <?php if($rol_usuario === 'admin'): ?>
-        <div class="w-px h-8 bg-slate-700 shrink-0"></div>
-        <button onclick="ejecutarMasivo('eliminar')" class="bg-rose-500/10 text-rose-500 border border-rose-500/20 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase hover:bg-rose-500 hover:text-white transition shrink-0">🗑️ Eliminar</button>
+        <button onclick="ejecutarMasivo('eliminar')" class="bg-rose-500/10 text-rose-500 border border-rose-500/20 px-4 py-2 rounded-xl text-[10px] font-black uppercase hover:bg-rose-500 hover:text-white transition shrink-0 ml-auto sm:ml-0">🗑️ Eliminar</button>
         <?php endif; ?>
     </div>
     <?php endif; ?>
@@ -1127,7 +1168,7 @@ const load = async () => {
 
                 let opBadge = canAssign ? 
                     `<select onchange="cambiarAsignacionRapida('${c.legajo}', this.value)" onclick="event.stopPropagation()" class="mt-2 w-[100px] bg-white border border-slate-200 rounded-lg text-[9px] font-black uppercase outline-none py-1 px-1">
-                        <option value="">👤 Sin Asignar</option>${operadoresList.map(o => `<option value="${o.id}" ${c.operador_id == o.id ? 'selected' : ''}>👤 ${o.nombre.split(' ')[0]}</option>`).join('')}
+                        <option value="">👤 Sin Asignar</option>${operadoresList.filter(o => o.activo == 1 || c.operador_id == o.id).map(o => `<option value="${o.id}" ${c.operador_id == o.id ? 'selected' : ''}>👤 ${o.nombre.split(' ')[0]}${o.activo == 0 ? ' (Off)' : ''}</option>`).join('')}
                     </select>` : 
                     `<p class="mt-2 text-[9px] font-black text-blue-500 uppercase tracking-widest">👤 ${c.operador_asignado?.split(' ')[0] || 'SIN ASIGNAR'}</p>`;
 
@@ -1169,13 +1210,19 @@ const load = async () => {
             let roleLabel = u.rol === 'admin' ? 'Administrador' : (u.rol === 'colaborador' ? 'Colaborador' : 'Operador');
             
             let uJson = JSON.stringify(u).replace(/'/g, "\\'").replace(/"/g, '&quot;'); 
-            let btns = isAdmin ? `<div class="absolute top-6 right-6 flex gap-2"><button onclick="editarUsuario(${uJson})" class="p-2 bg-blue-50 text-blue-600 rounded-xl transition hover:bg-blue-600 hover:text-white">✏️</button>${u.id != currentUserId ? `<button onclick='eliminarUsuario(${u.id}, "${u.nombre}")' class="p-2 bg-rose-50 text-rose-600 rounded-xl transition hover:bg-rose-600 hover:text-white">🗑️</button>` : ''}</div>` : '';
+            let toggleBtn = u.activo == 1 
+                ? `<button onclick='toggleUsuario(${u.id}, "${u.nombre}", 1)' class="p-2 bg-rose-50 text-rose-600 rounded-xl transition hover:bg-rose-600 hover:text-white" title="Desactivar">🚫</button>` 
+                : `<button onclick='toggleUsuario(${u.id}, "${u.nombre}", 0)' class="p-2 bg-emerald-50 text-emerald-600 rounded-xl transition hover:bg-emerald-600 hover:text-white" title="Activar">✅</button>`;
+            
+            let btns = isAdmin ? `<div class="absolute top-6 right-6 flex gap-2"><button onclick='editarUsuario(${uJson})' class="p-2 bg-blue-50 text-blue-600 rounded-xl transition hover:bg-blue-600 hover:text-white" title="Editar">✏️</button>${u.id != currentUserId ? toggleBtn : ''}</div>` : '';
+            
+            let nameHTML = `${u.nombre} ${u.activo == 0 ? '<span class="ml-2 px-2 py-0.5 bg-rose-100 text-rose-600 text-[9px] font-black tracking-widest rounded uppercase align-middle">Inactivo</span>' : ''}`;
             
             return `
-            <div class="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col justify-between group relative">
+            <div class="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col justify-between group relative ${u.activo == 0 ? 'opacity-60' : ''}">
                 ${btns}
                 <div class="mt-4">
-                    <p class="font-extrabold text-slate-800 text-lg uppercase tracking-tighter mb-1 pr-16">${u.nombre}</p>
+                    <p class="font-extrabold text-slate-800 text-lg uppercase tracking-tighter mb-1 pr-16">${nameHTML}</p>
                     <p class="text-[9px] font-black text-slate-400 uppercase break-all mb-2">${u.usuario}</p>
                     <p class="text-[10px] font-black uppercase tracking-widest ${roleColor}">${roleLabel}</p>
                 </div>
@@ -1259,13 +1306,13 @@ const load = async () => {
         if(canAssign) { 
             const res = await fetch(api_usuarios+'?action=list'); 
             operadoresList = await res.json(); 
-            const opsHTML = operadoresList.map(u => `<option value="${u.id}">👤 ${u.nombre}</option>`).join('');
+            const opsHTML = operadoresList.filter(u => u.activo == 1).map(u => `<option value="${u.id}" class="text-gray-900">👤 ${u.nombre}</option>`).join('');
             
             const fOp = document.getElementById('filter-operador');
-            if(fOp) fOp.innerHTML = '<option value="0">Todos los Operadores</option><option value="-1">👤 Sin Asignar</option>' + opsHTML;
-            document.getElementById('mAsignacion').innerHTML = '<option value="">👤 Sin Asignar</option>' + opsHTML;
+            if(fOp) fOp.innerHTML = '<option value="0" class="text-gray-900">Todos los Operadores</option><option value="-1" class="text-gray-900">👤 Sin Asignar</option>' + opsHTML;
+            document.getElementById('mAsignacion').innerHTML = '<option value="" class="text-gray-900">👤 Sin Asignar</option>' + opsHTML;
             const mAsigDesk = document.getElementById('mAsignacionDesktop');
-            if (mAsigDesk) mAsigDesk.innerHTML = '<option value="">👤 Sin Asignar</option>' + opsHTML; 
+            if (mAsigDesk) mAsigDesk.innerHTML = '<option value="" class="text-gray-900">👤 Sin Asignar</option>' + opsHTML; 
             const bOp = document.getElementById('masivo_operador');
             if(bOp) bOp.innerHTML += opsHTML;
             switchTab('dashboard');
@@ -1769,7 +1816,18 @@ const load = async () => {
     
     function openUserModal() { document.getElementById('uId').value = ''; document.getElementById('userForm').reset(); document.getElementById('modalUser').classList.replace('hidden', 'flex'); }
     function editarUsuario(u) { document.getElementById('uId').value = u.id; document.getElementById('uNom').value = u.nombre; document.getElementById('uMail').value = u.usuario; document.getElementById('uRol').value = u.rol; document.getElementById('modalUser').classList.replace('hidden', 'flex'); }
-    async function eliminarUsuario(id, nom) { if(!confirm(`¿Eliminar al operador ${nom}?`)) return; const fd = new FormData(); fd.append('id', id); await fetch(api_usuarios+'?action=delete', {method:'POST', body:fd}); loadPersonal(); if(canAssign) loadDashboard(); }
+    async function toggleUsuario(id, nom, isActivo) { 
+        const accionTexto = isActivo == 1 ? 'DESACTIVAR' : 'ACTIVAR';
+        const msg = isActivo == 1 
+            ? `¿${accionTexto} al operador ${nom}?\nEl operador no podrá iniciar sesión ni recibir nuevas asignaciones, pero su historial se mantendrá intacto.`
+            : `¿${accionTexto} al operador ${nom}?\nEl operador podrá volver a operar normalmente.`;
+        if(!confirm(msg)) return; 
+        const fd = new FormData(); 
+        fd.append('id', id); 
+        await fetch(api_usuarios+'?action=toggle', {method:'POST', body:fd}); 
+        loadPersonal(); 
+        if(canAssign) loadDashboard(); 
+    }
     if(document.getElementById('userForm')){ document.getElementById('userForm').onsubmit = async (e) => { e.preventDefault(); await fetch(api_usuarios+'?action=save', {method:'POST', body:new FormData(e.target)}); document.getElementById('modalUser').classList.replace('flex', 'hidden'); loadPersonal(); if(canAssign) loadDashboard(); }; }
     
     async function subirCSV(input) { 
@@ -1851,6 +1909,9 @@ const load = async () => {
     function actualizarFiltros() {
         filtroReportes.desde = document.getElementById('rep-desde').value || filtroReportes.desde;
         filtroReportes.hasta = document.getElementById('rep-hasta').value || filtroReportes.hasta;
+        filtroReportes.operador = document.getElementById('rep-operador') ? document.getElementById('rep-operador').value : '';
+        filtroReportes.cliente = document.getElementById('rep-cliente') ? document.getElementById('rep-cliente').value : '';
+        filtroReportes.limit = document.getElementById('rep-limit') ? document.getElementById('rep-limit').value : '50';
     }
 
     async function cargarResumenGeneral() {
@@ -1891,11 +1952,15 @@ const load = async () => {
             efectividad: 'efectividad_al_dia',
             matriz: 'matriz_cruce',
             clientes: 'clientes_mas_gestionados',
-            diario: 'resumen_diario'
+            diario: 'resumen_diario',
+            evol_cliente: 'evolucion_deuda&agrupacion=cliente',
+            evol_sucursal: 'evolucion_deuda&agrupacion=sucursal',
+            evol_operador: 'evolucion_deuda&agrupacion=operador'
         };
 
         try {
-            const res = await fetch(`api_reportes.php?action=${mapAccion[tipo]}&fecha_desde=${filtroReportes.desde}&fecha_hasta=${filtroReportes.hasta}`);
+            const qs = `fecha_desde=${filtroReportes.desde}&fecha_hasta=${filtroReportes.hasta}&op_id=${filtroReportes.operador}&q=${encodeURIComponent(filtroReportes.cliente)}&limit=${filtroReportes.limit}`;
+            const res = await fetch(`api_reportes.php?action=${mapAccion[tipo]}&${qs}`);
             const d = await res.json();
             if (d.success) {
                 datosReporteActual = d.data;
@@ -1913,6 +1978,28 @@ const load = async () => {
         if (!datos || (Array.isArray(datos) && datos.length === 0)) {
             document.getElementById('rep-contenido').innerHTML = `<p class="text-center py-20 text-slate-400 font-bold text-[10px] uppercase tracking-widest">Sin datos para el período seleccionado.</p>`;
             return;
+        }
+
+        if (tipo.startsWith('evol_')) {
+            html = `<h3 class="text-xl font-black text-slate-800 uppercase italic tracking-tighter mb-6">📈 Evolución de Deuda</h3>
+            <div class="overflow-x-auto custom-scroll"><table class="w-full text-sm">
+                <thead class="bg-slate-50 border-b text-slate-400 font-black uppercase text-[10px] tracking-widest"><tr>
+                    <th class="px-4 py-3 text-left">Referencia</th>
+                    <th class="px-4 py-3 text-left">Responsable / Grupo</th>
+                    <th class="px-4 py-3 text-left">Histórico de Deuda</th>
+                </tr></thead>
+                <tbody class="divide-y divide-slate-100">
+                ${datos.map(d => `<tr class="hover:bg-blue-50/30">
+                    <td class="px-4 py-3 font-bold text-slate-700 text-xs">${d.id}</td>
+                    <td class="px-4 py-3 font-bold text-slate-700 text-xs">${d.nombre}</td>
+                    <td class="px-4 py-3 text-xs w-full max-w-xl">
+                        <div class="flex flex-wrap gap-2">
+                        ${d.historial.map(h => `<span class="bg-white border border-gray-200 shadow-sm px-2 py-1 rounded text-[10px] font-bold text-gray-500">${h.fecha.split('-').slice(1).reverse().join('/')}: <span class="text-rose-600 font-black">$${parseFloat(h.deuda).toLocaleString('es-AR', {minimumFractionDigits:0, maximumFractionDigits:2})}</span></span>`).join('')}
+                        </div>
+                    </td>
+                </tr>`).join('')}
+                </tbody>
+            </table></div>`;
         }
 
         if (tipo === 'ranking') {
@@ -2061,25 +2148,64 @@ const load = async () => {
         document.getElementById('rep-contenido').innerHTML = html;
     }
 
-    function exportarReporte(formato) {
-        if (!datosReporteActual || (Array.isArray(datosReporteActual) && datosReporteActual.length === 0)) {
-            alert('Cargá un reporte primero.');
-            return;
-        }
-        const nombreArchivo = `reporte_${reporteActual}_${new Date().toISOString().split('T')[0]}`;
-        if (formato === 'json') {
-            const blob = new Blob([JSON.stringify(datosReporteActual, null, 2)], { type: 'application/json' });
-            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${nombreArchivo}.json`; a.click();
-        }
-        if (formato === 'csv') {
-            if (!Array.isArray(datosReporteActual)) { alert('Este reporte no puede exportarse a CSV.'); return; }
-            const headers = Object.keys(datosReporteActual[0] || {});
-            let contenido = headers.join(',') + '\n';
-            datosReporteActual.forEach(row => {
-                contenido += headers.map(h => { let v = row[h] ?? ''; if (typeof v === 'string' && v.includes(',')) v = `"${v}"`; return v; }).join(',') + '\n';
-            });
-            const blob = new Blob([contenido], { type: 'text/csv;charset=utf-8;' });
-            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${nombreArchivo}.csv`; a.click();
+    async function exportarReporte(formato) {
+        if (!reporteActual) { alert('Seleccione un reporte primero.'); return; }
+        
+        document.getElementById('rep-contenido').innerHTML = '<p class="text-center py-20 text-slate-400 font-bold text-[10px] uppercase tracking-widest">Generando exportación completa...</p>';
+        try {
+            const mapAccion = {
+                ranking: 'ranking_operadores', productividad: 'productividad',
+                efectividad: 'efectividad_al_dia', matriz: 'matriz_cruce',
+                clientes: 'clientes_mas_gestionados', diario: 'resumen_diario',
+                evol_cliente: 'evolucion_deuda&agrupacion=cliente', evol_sucursal: 'evolucion_deuda&agrupacion=sucursal', evol_operador: 'evolucion_deuda&agrupacion=operador'
+            };
+            const qs = `fecha_desde=${filtroReportes.desde}&fecha_hasta=${filtroReportes.hasta}&op=${filtroReportes.operador}&q=${encodeURIComponent(filtroReportes.cliente)}&limit=999999`;
+            const res = await fetch(`api_reportes.php?action=${mapAccion[reporteActual]}&${qs}`);
+            const d = await res.json();
+            
+            if (!d.success || !d.data || d.data.length === 0) { 
+                cambiarReporte(reporteActual);
+                alert('No hay datos para exportar.'); 
+                return; 
+            }
+            
+            let datosAExportar = d.data;
+            const nombreArchivo = `reporte_${reporteActual}_${new Date().toISOString().split('T')[0]}_COMPLETO`;
+
+            if (formato === 'json') {
+                const blob = new Blob([JSON.stringify(datosAExportar, null, 2)], { type: 'application/json' });
+                const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${nombreArchivo}.json`; a.click();
+            }
+
+            if (formato === 'csv') {
+                let isNested = (reporteActual.startsWith('evol_'));
+                let contenido = '';
+                
+                if (isNested) {
+                    contenido = 'Referencia,Nombre,Fecha,Deuda\n';
+                    datosAExportar.forEach(row => {
+                        let ref = row.id; let nom = row.nombre;
+                        if(nom && nom.includes(',')) nom = `"${nom}"`;
+                        row.historial.forEach(h => {
+                            contenido += `${ref},${nom},${h.fecha},${h.deuda}\n`;
+                        });
+                    });
+                } else {
+                    const headers = Object.keys(datosAExportar[0] || {});
+                    contenido = headers.join(',') + '\n';
+                    datosAExportar.forEach(row => {
+                        contenido += headers.map(h => { let v = row[h] ?? ''; if (typeof v === 'string' && v.includes(',')) v = `"${v}"`; return v; }).join(',') + '\n';
+                    });
+                }
+
+                const blob = new Blob([contenido], { type: 'text/csv;charset=utf-8;' });
+                const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${nombreArchivo}.csv`; a.click();
+            }
+            cambiarReporte(reporteActual);
+        } catch(e) {
+            console.error(e);
+            alert("Error en la exportación");
+            cambiarReporte(reporteActual);
         }
     }
 

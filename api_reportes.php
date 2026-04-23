@@ -28,7 +28,10 @@ try {
     $action = $_GET['action'] ?? 'resumen_diario';
     $fecha_desde = $_GET['fecha_desde'] ?? date('Y-m-d', strtotime('-7 days'));
     $fecha_hasta = $_GET['fecha_hasta'] ?? date('Y-m-d');
-    $operador_id = isset($_GET['operador_id']) ? (int)$_GET['operador_id'] : 0;
+    $operador_id = isset($_GET['op_id']) ? (int)$_GET['op_id'] : (isset($_GET['op']) ? (int)$_GET['op'] : 0);
+    $limit_val   = isset($_GET['limit']) ? (int)$_GET['limit'] : 50;
+    $query_str   = isset($_GET['q']) ? trim($_GET['q']) : '';
+
 
     // ══════════════════════════════════════════════════════════════════════════
     // 1. RESUMEN DIARIO — Gestiones por día, últimos 7 días
@@ -48,13 +51,23 @@ try {
                 SUM(CASE WHEN g.estado = 'carta' THEN 1 ELSE 0 END) as carta,
                 SUM(CASE WHEN g.estado = 'otro' THEN 1 ELSE 0 END) as otro
             FROM gestiones_historial g
+            LEFT JOIN clientes c ON g.legajo = c.legajo
             WHERE DATE(g.fecha_gestion) BETWEEN :desde AND :hasta
+              AND (:op_id = 0 OR g.usuario_id = :op_id)
+              AND (:q = '' OR g.legajo LIKE :q_like OR c.razon_social LIKE :q_like)
             GROUP BY DATE(g.fecha_gestion)
             ORDER BY fecha DESC
+            LIMIT :limit
         ";
         
         $stmt = $pdo->prepare($sql);
-        $stmt->execute([':desde' => $fecha_desde, ':hasta' => $fecha_hasta]);
+        $stmt->bindValue(':desde', $fecha_desde);
+        $stmt->bindValue(':hasta', $fecha_hasta);
+        $stmt->bindValue(':op_id', $operador_id, PDO::PARAM_INT);
+        $stmt->bindValue(':q', $query_str);
+        $stmt->bindValue(':q_like', "%$query_str%");
+        $stmt->bindValue(':limit', $limit_val, PDO::PARAM_INT);
+        $stmt->execute();
         $datos = $stmt->fetchAll();
         
         echo json_encode(['success' => true, 'data' => $datos, 'titulo' => 'Resumen Diario de Gestiones']);
@@ -83,23 +96,33 @@ try {
                 MAX(g.fecha_gestion) as ultima_gestion,
                 /* Al día: cuenta clientes asignados al operador cuya última gestión es 'al_dia'.
                    Se usa la tabla asignaciones porque clientes no tiene operador_id directamente. */
-                (SELECT COUNT(*)
-                 FROM asignaciones asg
-                 JOIN gestiones_historial gh ON asg.legajo = gh.legajo
+                (SELECT COUNT(DISTINCT gh.legajo)
+                 FROM gestiones_historial gh
+                 JOIN asignaciones asg ON gh.legajo = asg.legajo
                  WHERE asg.usuario_id = u.id
-                   AND gh.id = (SELECT MAX(id) FROM gestiones_historial WHERE legajo = asg.legajo)
                    AND gh.estado = 'al_dia'
+                   AND DATE(gh.fecha_gestion) BETWEEN :desde AND :hasta
                 ) as clientes_al_dia
             FROM usuarios u
             LEFT JOIN gestiones_historial g ON u.id = g.usuario_id 
                 AND DATE(g.fecha_gestion) BETWEEN :desde AND :hasta
+            LEFT JOIN clientes c ON g.legajo = c.legajo
             WHERE u.rol = 'operador' AND u.activo = 1 AND u.id != 42
+              AND (:op_id = 0 OR u.id = :op_id)
+              AND (:q = '' OR g.legajo LIKE :q_like OR c.razon_social LIKE :q_like)
             GROUP BY u.id, u.nombre, u.rol
             ORDER BY total_gestiones DESC
+            LIMIT :limit
         ";
         
         $stmt = $pdo->prepare($sql);
-        $stmt->execute([':desde' => $fecha_desde, ':hasta' => $fecha_hasta]);
+        $stmt->bindValue(':desde', $fecha_desde);
+        $stmt->bindValue(':hasta', $fecha_hasta);
+        $stmt->bindValue(':op_id', $operador_id, PDO::PARAM_INT);
+        $stmt->bindValue(':q', $query_str);
+        $stmt->bindValue(':q_like', "%$query_str%");
+        $stmt->bindValue(':limit', $limit_val, PDO::PARAM_INT);
+        $stmt->execute();
         $datos = $stmt->fetchAll();
         
         // Calcular métrica de efectividad
@@ -205,20 +228,36 @@ try {
                 COALESCE(COUNT(DISTINCT g.legajo), 0) as clientes_distintos,
                 COALESCE(ROUND(COUNT(g.id) / NULLIF(COUNT(DISTINCT DATE(g.fecha_gestion)), 0), 2), 0) as promedio_gestiones_por_dia,
                 COALESCE(SUM(CASE WHEN g.estado = 'promesa' THEN 1 ELSE 0 END), 0) as promesas,
-                COALESCE(SUM(CASE WHEN g.estado = 'al_dia' THEN 1 ELSE 0 END), 0) as al_dia,
+                (SELECT COUNT(DISTINCT gh.legajo) 
+                 FROM gestiones_historial gh 
+                 JOIN asignaciones asg ON gh.legajo = asg.legajo 
+                 WHERE asg.usuario_id = u.id 
+                   AND gh.estado = 'al_dia' 
+                   AND DATE(gh.fecha_gestion) BETWEEN :desde AND :hasta
+                ) as al_dia,
                 COALESCE(SUM(CASE WHEN g.estado = 'no_responde' THEN 1 ELSE 0 END), 0) as no_responde,
                 COALESCE(SUM(CASE WHEN g.estado = 'no_corresponde' THEN 1 ELSE 0 END), 0) as no_corresponde,
                 MAX(g.fecha_gestion) as ultima_gestion
             FROM usuarios u
             LEFT JOIN gestiones_historial g ON u.id = g.usuario_id 
                 AND DATE(g.fecha_gestion) BETWEEN :desde AND :hasta
+            LEFT JOIN clientes c ON g.legajo = c.legajo
             WHERE u.rol = 'operador' AND u.activo = 1 AND u.id != 42
+              AND (:op_id = 0 OR u.id = :op_id)
+              AND (:q = '' OR g.legajo LIKE :q_like OR c.razon_social LIKE :q_like)
             GROUP BY u.id, u.nombre, u.rol
             ORDER BY total_gestiones DESC
+            LIMIT :limit
         ";
         
         $stmt = $pdo->prepare($sql);
-        $stmt->execute([':desde' => $fecha_desde, ':hasta' => $fecha_hasta]);
+        $stmt->bindValue(':desde', $fecha_desde);
+        $stmt->bindValue(':hasta', $fecha_hasta);
+        $stmt->bindValue(':op_id', $operador_id, PDO::PARAM_INT);
+        $stmt->bindValue(':q', $query_str);
+        $stmt->bindValue(':q_like', "%$query_str%");
+        $stmt->bindValue(':limit', $limit_val, PDO::PARAM_INT);
+        $stmt->execute();
         $datos = $stmt->fetchAll();
         
         echo json_encode(['success' => true, 'data' => $datos, 'titulo' => 'Productividad Operativa']);
@@ -234,23 +273,46 @@ try {
                 u.id,
                 u.nombre,
                 COUNT(DISTINCT g.legajo) as clientes_gestionados,
-                SUM(CASE WHEN g.estado = 'al_dia' THEN 1 ELSE 0 END) as al_dia_logrados,
-                ROUND(100 * SUM(CASE WHEN g.estado = 'al_dia' THEN 1 ELSE 0 END) / NULLIF(COUNT(DISTINCT g.legajo), 0), 2) as tasa_al_dia_pct,
+                (SELECT COUNT(DISTINCT gh.legajo)
+                 FROM gestiones_historial gh
+                 JOIN asignaciones asg ON gh.legajo = asg.legajo
+                 WHERE asg.usuario_id = u.id
+                   AND gh.estado = 'al_dia'
+                   AND DATE(gh.fecha_gestion) BETWEEN :desde AND :hasta
+                ) as al_dia_logrados,
+                0 as tasa_al_dia_pct, /* Calculado abajo */
                 SUM(CASE WHEN g.estado = 'promesa' THEN 1 ELSE 0 END) as promesas,
                 SUM(CASE WHEN g.estado = 'no_responde' THEN 1 ELSE 0 END) as no_responde,
                 SUM(CASE WHEN g.estado = 'no_corresponde' THEN 1 ELSE 0 END) as no_corresponde
             FROM usuarios u
             LEFT JOIN gestiones_historial g ON u.id = g.usuario_id 
                 AND DATE(g.fecha_gestion) BETWEEN :desde AND :hasta
+            LEFT JOIN clientes c ON g.legajo = c.legajo
             WHERE u.rol = 'operador' AND u.activo = 1 AND u.id != 42
+              AND (:op_id = 0 OR u.id = :op_id)
+              AND (:q = '' OR g.legajo LIKE :q_like OR c.razon_social LIKE :q_like)
             GROUP BY u.id, u.nombre
             HAVING clientes_gestionados > 0
             ORDER BY tasa_al_dia_pct DESC
+            LIMIT :limit
         ";
         
         $stmt = $pdo->prepare($sql);
-        $stmt->execute([':desde' => $fecha_desde, ':hasta' => $fecha_hasta]);
+        $stmt->bindValue(':desde', $fecha_desde);
+        $stmt->bindValue(':hasta', $fecha_hasta);
+        $stmt->bindValue(':op_id', $operador_id, PDO::PARAM_INT);
+        $stmt->bindValue(':q', $query_str);
+        $stmt->bindValue(':q_like', "%$query_str%");
+        $stmt->bindValue(':limit', $limit_val, PDO::PARAM_INT);
+        $stmt->execute();
         $datos = $stmt->fetchAll();
+        
+        // Recalcular porcentajes después del subquery
+        foreach ($datos as &$row) {
+            $row['tasa_al_dia_pct'] = $row['clientes_gestionados'] > 0 
+                ? round(($row['al_dia_logrados'] / $row['clientes_gestionados']) * 100, 2)
+                : 0;
+        }
         
         echo json_encode(['success' => true, 'data' => $datos, 'titulo' => 'Efectividad (Clientes Al Día)']);
         exit;
@@ -260,13 +322,12 @@ try {
     // 6. MATRIZ DE CRUCE — Operador × Estado (Tabla de doble entrada)
     // ══════════════════════════════════════════════════════════════════════════
     if ($action === 'matriz_cruce') {
-        // Primero obtenemos todos los operadores
-        $stmt = $pdo->prepare("
-            SELECT u.id, u.nombre
-            FROM usuarios u
-            WHERE u.rol = 'operador' AND u.activo = 1 AND u.id != 42
-            ORDER BY u.nombre
-        ");
+        // Primero obtenemos los operadores según selección
+        $sqlOp = "SELECT u.id, u.nombre FROM usuarios u WHERE u.rol = 'operador' AND u.activo = 1 AND u.id != 42 ";
+        if ($operador_id > 0) $sqlOp .= " AND u.id = " . (int)$operador_id;
+        $sqlOp .= " ORDER BY u.nombre";
+        
+        $stmt = $pdo->prepare($sqlOp);
         $stmt->execute();
         $operadores = $stmt->fetchAll();
 
@@ -279,14 +340,25 @@ try {
             $fila = ['operador' => $op['nombre'], 'operador_id' => $op['id']];
             
             foreach ($estados as $estado) {
-                $stmt = $pdo->prepare("
-                    SELECT COUNT(DISTINCT g.legajo) as cantidad
-                    FROM gestiones_historial g
-                    WHERE g.usuario_id = ? AND g.estado = ? 
-                        AND DATE(g.fecha_gestion) BETWEEN ? AND ?
-                ");
-                $stmt->execute([$op['id'], $estado, $fecha_desde, $fecha_hasta]);
-                $res = $stmt->fetch();
+                if ($estado === 'al_dia') {
+                    $stmtE = $pdo->prepare("
+                        SELECT COUNT(DISTINCT gh.legajo) as cantidad
+                        FROM gestiones_historial gh
+                        JOIN asignaciones asg ON gh.legajo = asg.legajo
+                        WHERE asg.usuario_id = ? AND gh.estado = 'al_dia' 
+                            AND DATE(gh.fecha_gestion) BETWEEN ? AND ?
+                    ");
+                    $stmtE->execute([$op['id'], $fecha_desde, $fecha_hasta]);
+                } else {
+                    $stmtE = $pdo->prepare("
+                        SELECT COUNT(DISTINCT g.legajo) as cantidad
+                        FROM gestiones_historial g
+                        WHERE g.usuario_id = ? AND g.estado = ? 
+                            AND DATE(g.fecha_gestion) BETWEEN ? AND ?
+                    ");
+                    $stmtE->execute([$op['id'], $estado, $fecha_desde, $fecha_hasta]);
+                }
+                $res = $stmtE->fetch();
                 $fila[$estado] = (int)($res['cantidad'] ?? 0);
             }
             
@@ -321,13 +393,21 @@ try {
             LEFT JOIN gestiones_historial g ON c.legajo = g.legajo 
                 AND DATE(g.fecha_gestion) BETWEEN :desde AND :hasta
             WHERE g.id IS NOT NULL
+              AND (:op_id = 0 OR g.usuario_id = :op_id)
+              AND (:q = '' OR c.legajo LIKE :q_like OR c.razon_social LIKE :q_like)
             GROUP BY c.legajo, c.razon_social, c.total_vencido, c.dias_atraso
             ORDER BY total_gestiones DESC
-            LIMIT 50
+            LIMIT :limit
         ";
         
         $stmt = $pdo->prepare($sql);
-        $stmt->execute([':desde' => $fecha_desde, ':hasta' => $fecha_hasta]);
+        $stmt->bindValue(':desde', $fecha_desde);
+        $stmt->bindValue(':hasta', $fecha_hasta);
+        $stmt->bindValue(':op_id', $operador_id, PDO::PARAM_INT);
+        $stmt->bindValue(':q', $query_str);
+        $stmt->bindValue(':q_like', "%$query_str%");
+        $stmt->bindValue(':limit', $limit_val, PDO::PARAM_INT);
+        $stmt->execute();
         $datos = $stmt->fetchAll();
         
         echo json_encode(['success' => true, 'data' => $datos, 'titulo' => 'Clientes Más Gestionados']);
@@ -350,13 +430,101 @@ try {
                 AVG(CASE WHEN g.usuario_id IS NOT NULL THEN 1 ELSE 0 END) as promedio_gestiones_por_operador
             FROM usuarios u
             LEFT JOIN gestiones_historial g ON u.id = g.usuario_id
-            WHERE u.rol = 'operador' AND u.activo = 1 AND u.id != 42
-                AND (g.id IS NULL OR DATE(g.fecha_gestion) BETWEEN ? AND ?)
+                AND DATE(g.fecha_gestion) BETWEEN ? AND ?
+            WHERE u.activo = 1 AND u.id != 42
         ");
         $stmt->execute([$fecha_desde, $fecha_hasta, $fecha_desde, $fecha_hasta]);
         $resumen = $stmt->fetch();
         
         echo json_encode(['success' => true, 'data' => $resumen, 'titulo' => 'Resumen General']);
+        exit;
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // 9. EVOLUCIÓN DE DEUDA — Histórico de importes por cliente, sucursal u operador
+    // ══════════════════════════════════════════════════════════════════════════
+    if ($action === 'evolucion_deuda') {
+        $agrupacion = $_GET['agrupacion'] ?? 'sucursal'; // sucursal, operador, cliente
+        $op_id = $_GET['op_id'] ?? '';
+        $q = trim($_GET['q'] ?? '');
+        $limit_val = isset($_GET['limit']) ? (int)$_GET['limit'] : 50;
+        
+        $params = [':desde' => $fecha_desde, ':hasta' => $fecha_hasta];
+        $filtro_q = "";
+        $filtro_op = "";
+        
+        if ($q !== '') {
+            $filtro_q = " AND (h.legajo LIKE :q OR c.razon_social LIKE :q) ";
+            $params[':q'] = "%$q%";
+        }
+        
+        if ($op_id !== '') {
+            $filtro_op = " AND h.operador_id = :op_id ";
+            $params[':op_id'] = $op_id;
+        }
+
+        if ($agrupacion === 'cliente') {
+            $sql = "
+                SELECT h.fecha_registro as fecha, h.legajo as id_grupo, c.razon_social as nombre, h.monto_vencido as deuda
+                FROM historial_deuda h
+                LEFT JOIN clientes c ON h.legajo = c.legajo
+                WHERE h.fecha_registro BETWEEN :desde AND :hasta
+                $filtro_q
+                $filtro_op
+                ORDER BY h.fecha_registro DESC, h.legajo ASC
+                LIMIT $limit_val
+            ";
+        } elseif ($agrupacion === 'operador') {
+            $sql = "
+                SELECT h.fecha_registro as fecha, u.id as id_grupo, u.nombre as nombre, SUM(h.monto_vencido) as deuda
+                FROM historial_deuda h
+                LEFT JOIN usuarios u ON h.operador_id = u.id
+                LEFT JOIN clientes c ON h.legajo = c.legajo
+                WHERE h.fecha_registro BETWEEN :desde AND :hasta
+                $filtro_q
+                $filtro_op
+                GROUP BY h.fecha_registro, u.id, u.nombre
+                ORDER BY h.fecha_registro DESC
+                LIMIT $limit_val
+            ";
+        } else { // sucursal
+            $sql = "
+                SELECT h.fecha_registro as fecha, h.sucursal as id_grupo, h.sucursal as nombre, SUM(h.monto_vencido) as deuda
+                FROM historial_deuda h
+                LEFT JOIN clientes c ON h.legajo = c.legajo
+                WHERE h.fecha_registro BETWEEN :desde AND :hasta
+                $filtro_q
+                $filtro_op
+                GROUP BY h.fecha_registro, h.sucursal
+                ORDER BY h.fecha_registro DESC
+                LIMIT $limit_val
+            ";
+        }
+        
+        $stmt = $pdo->prepare($sql);
+        foreach ($params as $k => $v) { $stmt->bindValue($k, $v); }
+        $stmt->execute();
+        $datos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $resultado = [];
+        foreach ($datos as $row) {
+            $id = $row['id_grupo'] ?: 'N/A';
+            $nom = $row['nombre'] ?: 'Sin Asignar/Sin Sucursal';
+            
+            if (!isset($resultado[$id])) {
+                $resultado[$id] = [
+                    'id' => $id,
+                    'nombre' => $nom,
+                    'historial' => []
+                ];
+            }
+            $resultado[$id]['historial'][] = [
+                'fecha' => $row['fecha'],
+                'deuda' => (float)$row['deuda']
+            ];
+        }
+
+        echo json_encode(['success' => true, 'data' => array_values($resultado), 'titulo' => 'Evolución de Deuda (' . ucfirst($agrupacion) . ')']);
         exit;
     }
 
