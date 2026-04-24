@@ -122,6 +122,13 @@ Línea de tiempo. La gestión con el ID más alto determina el "estado actual".
 
 ## 🚀 Historial de Cambios
 
+### v3.1 (2026-04-24): Módulo ABM de Clientes Profesional
+* Implementación de `api_abm_clientes.php` para operaciones CRUD completas (Alta, Baja, Modificación).
+* Integración de botones de edición directa en cada fila de la tabla principal para Administradores y Colaboradores.
+* Nuevo modal ABM con organización por secciones (Identificación, Ubicación, Deuda).
+* Sistema de seguridad para eliminación de registros mediante confirmación por escritura de legajo (Solo Admin).
+* Botón de creación manual "+ Nuevo" en barra de acciones global.
+
 ### v3.0 — Sistema de Filtrado por Sucursal y Navegación (24 de Abril, 2026)
 
 * 🏢 **Filtrado Global por Sucursal:** Se implementó un selector de sucursal en la barra de herramientas que afecta tanto al Tablero (Dashboard) como al listado de clientes, permitiendo análisis específicos por boca de cobranza.

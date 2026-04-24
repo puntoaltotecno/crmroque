@@ -49,6 +49,17 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
         .badge-sin_gestion { background: #f8fafc; color: #94a3b8; border: 1px solid #e2e8f0; }
         .badge-al_dia { background: #ccfbf1; color: #0f766e; }
         #bulk-actions select option { color: #1e293b; background-color: white; }
+
+        /* Colores Emerald/Green faltantes en el bundle local */
+        .bg-emerald-600 { background-color: #059669 !important; }
+        .hover\:bg-emerald-700:hover { background-color: #047857 !important; }
+        .bg-emerald-50 { background-color: #ecfdf5 !important; }
+        .text-emerald-600 { color: #059669 !important; }
+        .text-emerald-500 { color: #10b981 !important; }
+        .border-emerald-50 { border-color: #ecfdf5 !important; }
+        .border-emerald-100 { border-color: #d1fae5 !important; }
+        .bg-green-600 { background-color: #059669 !important; }
+        .bg-green-500 { background-color: #10b981 !important; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900 min-h-screen" onclick="cerrarDropdownNoti()">
@@ -348,6 +359,10 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
                     <input type="text" id="search" placeholder="Buscar por Legajo, Razón, Doc o Tel..." class="flex-1 px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-medium outline-none shadow-sm focus:ring-4 focus:ring-crm-blue/10 transition">
                     
                     <div class="flex gap-2 w-full lg:w-auto shrink-0 mt-2 lg:mt-0">
+                        <?php if($can_assign): ?>
+                        <button onclick="abrirABM('nuevo')" class="flex-1 lg:flex-none bg-emerald-600 text-white px-6 py-4 rounded-2xl text-[11px] font-black uppercase shadow-xl hover:bg-emerald-700 transition">+ Nuevo</button>
+                        <?php endif; ?>
+
                         <button onclick="exportarExcel()" class="flex-1 lg:flex-none bg-blue-50 text-crm-blue px-6 py-3 rounded-xl text-[10px] font-black uppercase border border-blue-100 hover:bg-blue-100 transition shadow-sm">Exportar</button>
                         
                         <?php if($rol_usuario === 'admin'): ?>
@@ -706,8 +721,9 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
             <div class="px-5 pt-6 pb-4 md:px-10 md:pt-8 border-b border-gray-100 shrink-0 bg-white">
                 <div class="flex justify-between items-start gap-2 mb-4">
                     <div class="flex-1 min-w-0">
-                        <h3 id="mRazon" class="text-xl md:text-2xl font-extrabold text-gray-800 uppercase tracking-tight leading-tight truncate"></h3>
+                        <h3 id="mRazon" class="text-xl md:text-2xl font-extrabold text-gray-800 uppercase tracking-tight leading-tight truncate flex items-center gap-2"></h3>
                         <div class="flex flex-wrap items-center gap-3 mt-1">
+                            <div id="mEditBtnContainer" class="inline-block"></div>
                             <p id="mLegajo" class="text-crm-blue font-black text-[10px] uppercase tracking-widest"></p>
                             <span id="mWarningOtroOp" class="hidden bg-amber-50 text-amber-600 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded border border-amber-100"></span>
                             <span id="mSucursal" class="bg-gray-100 px-2 py-0.5 rounded text-[8px] font-extrabold uppercase text-gray-400 italic hidden md:inline"></span>
@@ -1198,7 +1214,18 @@ const load = async () => {
                     </td>
                     <td class="px-6 py-3 md:py-4 text-right whitespace-nowrap"><p class="font-black text-slate-900 text-sm">${trMonto}</p></td>
                     <td class="px-2 py-3 md:py-4 text-center whitespace-nowrap max-w-[140px]"><span class="px-3 py-1 rounded-full text-[9px] font-black uppercase ${badgeClass}">${labelEstado}</span><div class="flex justify-center">${opBadge}</div></td>
-                    <td class="pr-4 md:pr-6 pl-2 py-3 md:py-4 text-center whitespace-nowrap w-32"><button onclick="event.stopPropagation(); openModal(${cJson})" class="bg-blue-600 text-white px-3 md:px-4 py-2 rounded-lg text-[9px] font-black uppercase hover:bg-blue-700 transition shadow-sm whitespace-nowrap min-w-max">Gestionar</button></td>
+                    <td class="px-8 py-5 text-center">
+                        <div class="flex flex-col gap-2 items-center">
+                            <button onclick="event.stopPropagation(); openModal(${cJson})" 
+                                class="bg-blue-600 text-white px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase hover:bg-blue-700 transition shadow-sm w-full font-black">
+                                Gestionar
+                            </button>
+                            ${canAssign ? `<button onclick="event.stopPropagation(); abrirABM('editar', '${c.legajo}')" 
+                                class="bg-amber-100 text-amber-700 border border-amber-200 px-5 py-2 rounded-2xl text-[10px] font-black uppercase hover:bg-amber-200 transition w-full">
+                                ✏️ Editar
+                            </button>` : ''}
+                        </div>
+                    </td>
                 </tr>`;
             }).join('');
             updateBulkUI();
@@ -1477,6 +1504,15 @@ const load = async () => {
         const lista = window.listaClientes || [];
         window.clienteActualIdx = lista.findIndex(x => x.legajo === c.legajo);
         actualizarNavegacion();
+
+        // PASO 4: Inyectar botón de edición si es admin/colab
+        const editBtnContainer = document.getElementById('mEditBtnContainer');
+        if(editBtnContainer) {
+            editBtnContainer.innerHTML = (isAdmin || isColab) 
+                ? `<button onclick="abrirABM('editar', '${c.legajo}')" class="bg-slate-100 text-slate-500 p-2 rounded-lg hover:bg-emerald-50 hover:text-emerald-600 transition" title="Editar ficha completa">✏️</button>`
+                : '';
+        }
+
         document.getElementById('mHis').innerHTML = '<p class="text-center py-10 opacity-30 text-[10px] font-black uppercase tracking-widest">Cargando...</p>';
         document.getElementById('mLegajoRaw').value = c.legajo; 
         document.getElementById('mRazon').innerText = c.razon_social; 
@@ -2368,7 +2404,221 @@ const load = async () => {
         cargarMiRendimiento();
     }, 1000);
 
+    // ═══════════════════════════════════════════════════════════════════════════
+    // MÓDULO: ABM CLIENTES (ADMIN/COLAB)
+    // ═══════════════════════════════════════════════════════════════════════════
+    async function abrirABM(modo, legajo = '') {
+        const modal = document.getElementById('modalABM');
+        const form = document.getElementById('formABM');
+        const title = document.getElementById('abmTitle');
+        const btnSubmit = document.getElementById('abmBtnSubmit');
+        const dangerZone = document.getElementById('abmDangerZone');
+        
+        form.reset();
+        document.getElementById('abmLegajoActual').value = legajo;
+        document.getElementById('abmAction').value = modo === 'nuevo' ? 'crear' : 'editar';
+        
+        // Poblar select de operadores
+        const selOp = document.getElementById('abmOperador');
+        selOp.innerHTML = '<option value="">👤 Sin Asignar</option>' + 
+            operadoresList.filter(u => u.activo == 1).map(u => `<option value="${u.id}">👤 ${u.nombre}</option>`).join('');
+
+        if (modo === 'nuevo') {
+            title.innerText = '🚀 Nuevo Cliente';
+            btnSubmit.innerText = 'Crear Cliente';
+            document.getElementById('abmInputLegajo').readOnly = false;
+            document.getElementById('abmInputLegajo').classList.remove('bg-gray-200');
+            dangerZone.classList.add('hidden');
+            modal.classList.replace('hidden', 'flex');
+        } else {
+            title.innerText = '✏️ Editar Cliente';
+            btnSubmit.innerText = 'Guardar Cambios';
+            document.getElementById('abmInputLegajo').readOnly = true;
+            document.getElementById('abmInputLegajo').classList.add('bg-gray-200');
+            dangerZone.classList.toggle('hidden', !isAdmin);
+            
+            try {
+                const res = await fetch(`api_abm_clientes.php?action=get&legajo=${legajo}`);
+                const d = await res.json();
+                if (d.success) {
+                    const c = d.data;
+                    document.getElementById('abmInputLegajo').value = c.legajo;
+                    document.getElementById('abmRazon').value = c.razon_social;
+                    document.getElementById('abmDoc').value = c.nro_documento;
+                    document.getElementById('abmEntidad').value = c.l_entidad_id || '';
+                    document.getElementById('abmSucursal').value = c.sucursal || '';
+                    document.getElementById('abmLocalidad').value = c.localidad || '';
+                    document.getElementById('abmDomicilio').value = c.domicilio || '';
+                    document.getElementById('abmTelefonos').value = c.telefonos || '';
+                    document.getElementById('abmVencido').value = c.total_vencido;
+                    document.getElementById('abmAtraso').value = c.dias_atraso;
+                    document.getElementById('abmCuotas').value = c.c_cuotas;
+                    document.getElementById('abmUltimo').value = c.ultimo_pago || '';
+                    document.getElementById('abmVto').value = c.vencimiento || '';
+                    document.getElementById('abmOperador').value = c.operador_id || '';
+                    modal.classList.replace('hidden', 'flex');
+                } else {
+                    alert("Error: " + d.message);
+                }
+            } catch (e) { alert("Error de conexión al obtener datos."); }
+        }
+    }
+
+    async function guardarABM(e) {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        const action = document.getElementById('abmAction').value;
+        
+        try {
+            const res = await fetch(`api_abm_clientes.php?action=${action}`, { method: 'POST', body: fd });
+            const d = await res.json();
+            if (d.success) {
+                document.getElementById('modalABM').classList.replace('flex', 'hidden');
+                alert(d.message);
+                load(); stats(); // Recargar lista principal
+                if (typeof closeModal === 'function') closeModal(); // Cerrar modal de gestión si estaba abierto
+            } else {
+                alert("Error: " + d.message);
+            }
+        } catch (e) { alert("Error de conexión al guardar."); }
+    }
+
+    async function eliminarClienteABM() {
+        const legajo = document.getElementById('abmLegajoActual').value;
+        const confirmStr = prompt(`⚠️ ATENCIÓN: Esta acción eliminará permanentemente al cliente y todo su historial de gestiones.\n\nPara confirmar, escriba el legajo del cliente (${legajo}):`);
+        
+        if (confirmStr === null) return;
+        if (confirmStr !== legajo) {
+            alert("El legajo no coincide. Operación cancelada.");
+            return;
+        }
+
+        const fd = new FormData();
+        fd.append('legajo', legajo);
+        fd.append('confirmacion', confirmStr);
+
+        try {
+            const res = await fetch(`api_abm_clientes.php?action=eliminar`, { method: 'POST', body: fd });
+            const d = await res.json();
+            if (d.success) {
+                document.getElementById('modalABM').classList.replace('flex', 'hidden');
+                alert(d.message);
+                load(); stats();
+                if (typeof closeModal === 'function') closeModal();
+            } else {
+                alert("Error: " + d.message);
+            }
+        } catch (e) { alert("Error de conexión."); }
+    }
+
 </script>
 <?php endif; ?>
+
+<!-- MODAL ABM CLIENTES (PANEL LATERAL O CENTRADO) -->
+<div id="modalABM" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md hidden items-center justify-center p-4 z-[110]">
+    <div class="bg-white w-full max-w-4xl max-h-[90vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in duration-300">
+        <div class="px-8 py-6 border-b border-gray-100 flex justify-between items-center bg-slate-50">
+            <div>
+                <h3 id="abmTitle" class="text-xl font-black text-slate-800 uppercase tracking-tighter italic">🚀 Gestión de Cliente</h3>
+                <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Alta, Baja y Modificación manual de registros</p>
+            </div>
+            <button onclick="document.getElementById('modalABM').classList.replace('flex', 'hidden')" class="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center text-slate-400 hover:text-slate-800 transition transform hover:rotate-90">✕</button>
+        </div>
+
+        <form id="formABM" onsubmit="guardarABM(event)" class="flex-1 overflow-y-auto p-8 custom-scroll">
+            <input type="hidden" name="legajo_actual" id="abmLegajoActual">
+            <input type="hidden" id="abmAction">
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Seccion 1: Identificación -->
+                <div class="space-y-4">
+                    <h4 class="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-4 border-b border-blue-50 pb-2">🆔 Identificación</h4>
+                    <div>
+                        <label class="block text-[9px] font-black text-slate-400 uppercase mb-2">Legajo / ID Interno</label>
+                        <input type="text" name="legajo" id="abmInputLegajo" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-xs focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition uppercase">
+                    </div>
+                    <div>
+                        <label class="block text-[9px] font-black text-slate-400 uppercase mb-2">Razón Social</label>
+                        <input type="text" name="razon_social" id="abmRazon" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-xs focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition uppercase">
+                    </div>
+                    <div>
+                        <label class="block text-[9px] font-black text-slate-400 uppercase mb-2">Documento / CUIT</label>
+                        <input type="text" name="nro_documento" id="abmDoc" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-xs focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition">
+                    </div>
+                    <div>
+                        <label class="block text-[9px] font-black text-slate-400 uppercase mb-2">ID Entidad (Landy)</label>
+                        <input type="number" name="l_entidad_id" id="abmEntidad" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-xs focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition">
+                    </div>
+                </div>
+
+                <!-- Seccion 2: Ubicación y Contacto -->
+                <div class="space-y-4">
+                    <h4 class="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-4 border-b border-emerald-50 pb-2">📍 Ubicación y Contacto</h4>
+                    <div>
+                        <label class="block text-[9px] font-black text-slate-400 uppercase mb-2">Sucursal</label>
+                        <input type="text" name="sucursal" id="abmSucursal" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-xs focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition uppercase">
+                    </div>
+                    <div>
+                        <label class="block text-[9px] font-black text-slate-400 uppercase mb-2">Localidad</label>
+                        <input type="text" name="localidad" id="abmLocalidad" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-xs focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition uppercase">
+                    </div>
+                    <div>
+                        <label class="block text-[9px] font-black text-slate-400 uppercase mb-2">Domicilio</label>
+                        <input type="text" name="domicilio" id="abmDomicilio" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-xs focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition uppercase">
+                    </div>
+                    <div>
+                        <label class="block text-[9px] font-black text-slate-400 uppercase mb-2">Teléfonos (Sep. por guiones)</label>
+                        <textarea name="telefonos" id="abmTelefonos" rows="2" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-xs focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition resize-none"></textarea>
+                    </div>
+                </div>
+
+                <!-- Seccion 3: Datos de Deuda y Asignación -->
+                <div class="space-y-4">
+                    <h4 class="text-[10px] font-black text-rose-500 uppercase tracking-widest mb-4 border-b border-rose-50 pb-2">💰 Deuda y Operador</h4>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[9px] font-black text-slate-400 uppercase mb-2">Total Vencido</label>
+                            <input type="number" step="0.01" name="total_vencido" id="abmVencido" class="w-full px-4 py-3 bg-rose-50 border border-rose-100 rounded-xl outline-none font-bold text-xs text-rose-600 focus:ring-4">
+                        </div>
+                        <div>
+                            <label class="block text-[9px] font-black text-slate-400 uppercase mb-2">Días Atraso</label>
+                            <input type="number" name="dias_atraso" id="abmAtraso" class="w-full px-4 py-3 bg-rose-50 border border-rose-100 rounded-xl outline-none font-bold text-xs text-rose-600 focus:ring-4">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[9px] font-black text-slate-400 uppercase mb-2">Cuotas</label>
+                            <input type="number" name="c_cuotas" id="abmCuotas" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-xs">
+                        </div>
+                        <div>
+                            <label class="block text-[9px] font-black text-slate-400 uppercase mb-2">Vencimiento</label>
+                            <input type="date" name="vencimiento" id="abmVto" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-[10px]">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-[9px] font-black text-slate-400 uppercase mb-2">Último Pago</label>
+                        <input type="date" name="ultimo_pago" id="abmUltimo" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-[10px]">
+                    </div>
+                    <div>
+                        <label class="block text-[9px] font-black text-slate-400 uppercase mb-2">Operador Asignado</label>
+                        <select name="operador_id" id="abmOperador" class="w-full px-4 py-3 bg-blue-50 border border-blue-100 rounded-xl outline-none font-bold text-xs text-blue-600 appearance-none cursor-pointer">
+                            <option value="">👤 Sin Asignar</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-8 pt-6 border-t border-slate-100 flex flex-wrap items-center justify-between gap-4">
+                <div id="abmDangerZone" class="hidden">
+                    <button type="button" onclick="eliminarClienteABM()" class="bg-rose-50 text-rose-600 px-6 py-3 rounded-xl text-[10px] font-black uppercase hover:bg-rose-600 hover:text-white transition">🗑️ Eliminar Cliente</button>
+                </div>
+                <div class="flex gap-3 ml-auto">
+                    <button type="button" onclick="document.getElementById('modalABM').classList.replace('flex', 'hidden')" class="px-8 py-3 rounded-xl text-[10px] font-black uppercase text-slate-400 hover:text-slate-800 transition">Cancelar</button>
+                    <button type="submit" id="abmBtnSubmit" class="bg-crm-blue text-white px-10 py-3 rounded-xl text-[10px] font-black uppercase shadow-xl hover:opacity-90 transition">Guardar Cliente</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
 </body>
 </html>
