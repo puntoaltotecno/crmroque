@@ -122,6 +122,11 @@ Línea de tiempo. La gestión con el ID más alto determina el "estado actual".
 
 ## 🚀 Historial de Cambios
 
+### v3.2 (2026-04-24): Módulo ABM Expandido y Mejoras de UI
+* **Clasificación MOTO:** Añadido soporte manual para marcar/desmarcar clientes con deuda de motocicleta desde el modal ABM.
+* **Backend v3.2:** `api_abm_clientes.php` ahora procesa flags de tipo de deuda.
+* **UX/Contraste:** Mejora visual de botones "Gestionar" en la Agenda para garantizar legibilidad con nuevos estilos de contraste.
+
 ### v3.1 (2026-04-24): Módulo ABM de Clientes Profesional
 * Implementación de `api_abm_clientes.php` para operaciones CRUD completas (Alta, Baja, Modificación).
 * Integración de botones de edición directa en cada fila de la tabla principal para Administradores y Colaboradores.

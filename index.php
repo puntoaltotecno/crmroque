@@ -2456,6 +2456,7 @@ const load = async () => {
                     document.getElementById('abmUltimo').value = c.ultimo_pago || '';
                     document.getElementById('abmVto').value = c.vencimiento || '';
                     document.getElementById('abmOperador').value = c.operador_id || '';
+                    document.getElementById('abmMoto').checked = (c.moto == 1);
                     modal.classList.replace('hidden', 'flex');
                 } else {
                     alert("Error: " + d.message);
@@ -2548,6 +2549,15 @@ const load = async () => {
                     <div>
                         <label class="block text-[9px] font-black text-slate-400 uppercase mb-2">ID Entidad (Landy)</label>
                         <input type="number" name="l_entidad_id" id="abmEntidad" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-xs focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition">
+                    </div>
+                    <div class="pt-2">
+                        <label class="flex items-center space-x-3 cursor-pointer group bg-red-50 p-4 rounded-2xl border border-red-100 hover:bg-red-100 transition shadow-sm">
+                            <input type="checkbox" name="moto" id="abmMoto" value="1" class="w-5 h-5 rounded text-red-600 bg-white border-red-300 focus:ring-red-500">
+                            <div class="flex flex-col">
+                                <span class="text-[10px] font-black uppercase tracking-widest text-red-700">🚨 Deuda MOTO</span>
+                                <span class="text-[8px] font-bold text-red-500/60 uppercase">Marcar si es crédito de motocicleta</span>
+                            </div>
+                        </label>
                     </div>
                 </div>
 

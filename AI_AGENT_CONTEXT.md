@@ -24,8 +24,9 @@ El proyecto está construido de manera plana. Todos los archivos se encuentran e
 3. **Operador:** Visualización bloqueada para métricas financieras globales. Solo ve su propia agenda. 
    - **Restricción de Seguridad v2.6:** El operador **NUNCA** puede categorizar clientes en estado "Al Día" por su cuenta (validado en backend y frontend). El sistema bloquea interacciones si el cliente está "Al Día".
 
-## Reglas de Negocio Vitales (v3.1) ⚙️
-- **v3.1 — Módulo ABM Clientes:** Administración manual de la base de clientes.
+## Reglas de Negocio Vitales (v3.2) ⚙️
+- **v3.2 — Clasificación MOTO en ABM:** Soporte manual para marcar/desmarcar clientes con deuda de motocicleta desde el panel de administración.
+- **v3.1 — Módulo ABM Clientes:** Administración manual de la base de clientes (Alta, Baja, Modificación).
    - **Altas:** Permite crear nuevos clientes manualmente.
    - **Modificaciones:** Edición completa de ficha desde el modal o directamente desde la tabla principal.
    - **Bajas:** Restringidas a **Administradores** con confirmación mediante escritura del legajo.
@@ -47,4 +48,4 @@ El proyecto está construido de manera plana. Todos los archivos se encuentran e
 5. **Comunicación:** WhatsApp unificado con detección inteligente de Web/App.
 
 ---
-*Última actualización de memoria: 2026-04-24 - Versión Operativa 3.1*
+*Última actualización de memoria: 2026-04-24 - Versión Operativa 3.2*
