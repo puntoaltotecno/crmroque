@@ -109,6 +109,17 @@ try {
         }
     }
 
+    // ── NUEVO: Filtro SUCURSAL ──
+    $f_sucursal = trim($_GET['sucursal'] ?? '');
+    if (!empty($f_sucursal)) {
+        if ($f_sucursal === 'Central') {
+            $where .= " AND (c.sucursal IS NULL OR TRIM(c.sucursal) = '')";
+        } else {
+            $where .= " AND TRIM(c.sucursal) = :f_suc";
+            $params[':f_suc'] = $f_sucursal;
+        }
+    }
+
     // ── NUEVO: Filtro MOTO ──
     if ($f_moto === 1) {
         $where .= " AND c.moto = 1";

@@ -53,16 +53,22 @@ try {
             c_agg.sucursal_nombre,
             c_agg.total_clientes,
             c_agg.deuda_en_calle,
-            IFNULL(g_agg.total_gestiones, 0) as total_gestiones
+            IFNULL(g_agg.total_gestionados, 0) as total_gestionados,
+            ROUND(
+                CASE WHEN c_agg.total_clientes > 0 
+                     THEN (IFNULL(g_agg.total_gestionados, 0) / c_agg.total_clientes) * 100 
+                     ELSE 0 
+                END
+            ) as pct_gestionados
         FROM 
             (SELECT IFNULL(NULLIF(TRIM(sucursal), ''), 'Central') as sucursal_nombre, 
-                    COUNT(id) as total_clientes, 
+                    COUNT(DISTINCT legajo) as total_clientes, 
                     SUM(total_vencido) as deuda_en_calle
              FROM clientes 
              GROUP BY sucursal_nombre) c_agg
         LEFT JOIN 
              (SELECT IFNULL(NULLIF(TRIM(c.sucursal), ''), 'Central') as sucursal_nombre, 
-                     COUNT(g.id) as total_gestiones
+                     COUNT(DISTINCT g.legajo) as total_gestionados
               FROM gestiones_historial g 
               JOIN clientes c ON g.legajo = c.legajo 
               WHERE g.oculta = 0 OR g.oculta IS NULL

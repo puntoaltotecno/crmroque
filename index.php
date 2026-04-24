@@ -292,11 +292,11 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
                             <table class="w-full text-sm">
                                 <thead class="bg-gray-50 border-b text-gray-400 font-extrabold uppercase text-[9px] tracking-widest">
                                     <tr>
-                                        <th class="px-4 py-4 text-left">Sucursal</th>
-                                        <th class="px-4 py-4 text-center">Total Clientes</th>
-                                        <th class="px-4 py-4 text-center">Gestiones</th>
-                                        <th class="px-4 py-4 text-center">% Gestionados</th>
-                                        <th class="px-4 py-4 text-right">En Calle (Deuda)</th>
+                                        <th class="px-6 py-4 text-left">Sucursal</th>
+                                        <th class="px-6 py-4 text-center">Total Clientes</th>
+                                        <th class="px-6 py-4 text-center">Gestiones</th>
+                                        <th class="px-6 py-4 text-center">% Gestionados</th>
+                                        <th class="px-6 py-4 text-right">En Calle (Deuda)</th>
                                     </tr>
                                 </thead>
                                 <tbody id="listaSucursales" class="divide-y divide-gray-50">
@@ -357,7 +357,6 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
                     </div>
                 </div>
 
-                <!-- Filtros Secundarios -->
                 <div class="flex flex-col md:flex-row items-center gap-3 w-full">
                     <select id="filter-estado" onchange="load(); stats();" class="w-full md:flex-1 px-4 py-3 bg-white border border-gray-200 rounded-xl text-[10px] font-black uppercase outline-none shadow-sm cursor-pointer hover:bg-gray-50">
                         <option value="">Todos los Estados</option>
@@ -370,6 +369,9 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
                         <option value="numero_baja">Nro de Baja</option>
                         <option value="carta">Carta</option>
                         <option value="otro">Otro</option>
+                    </select>
+                    <select id="filter-sucursal" onchange="load(); stats();" class="w-full md:flex-1 px-4 py-3 bg-white border border-gray-200 rounded-xl text-[10px] font-black uppercase outline-none shadow-sm cursor-pointer hover:bg-gray-50">
+                        <option value="">Todas las Sucursales</option>
                     </select>
 
                     <?php if($can_assign): ?>
@@ -1077,16 +1079,16 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
                 if (document.getElementById('listaSucursales') && data.sucursales) {
                     document.getElementById('listaSucursales').innerHTML = data.sucursales.map(s => {
                         let monto = `$${parseFloat(s.deuda_en_calle || 0).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-                        let gestiones = s.total_gestiones || 0;
-                        let pctGestion = s.total_clientes > 0 ? Math.round((gestiones / s.total_clientes) * 100) : 0;
+                        let pct = parseInt(s.pct_gestionados || 0);
+                        let colorPct = pct >= 70 ? 'text-emerald-600 bg-emerald-50' : (pct >= 40 ? 'text-amber-600 bg-amber-50' : 'text-rose-600 bg-rose-50');
                         return `<tr class="hover:bg-blue-50/50 transition border-b border-slate-50">
                             <td class="px-6 py-4 font-black text-slate-800 uppercase text-[11px] tracking-widest">${s.sucursal_nombre}</td>
                             <td class="px-6 py-4 text-center font-bold text-slate-500">${s.total_clientes}</td>
-                            <td class="px-6 py-4 text-center font-bold text-blue-600">${gestiones}</td>
-                            <td class="px-6 py-4 text-center font-black text-slate-700">${pctGestion}%</td>
+                            <td class="px-6 py-4 text-center font-black text-blue-600 cursor-pointer hover:underline" onclick="aplicarFiltroPorSucursal('${s.sucursal_nombre}')">${s.total_gestionados}</td>
+                            <td class="px-6 py-4 text-center"><span class="px-3 py-1 rounded-full text-[10px] font-black ${colorPct}">${pct}%</span></td>
                             <td class="px-6 py-4 text-right font-black text-rose-600 bg-rose-50/30">${monto}</td>
                         </tr>`;
-                    }).join('') || `<tr><td colspan="4" class="text-center py-6 text-slate-400 font-bold text-xs uppercase tracking-widest">Sin datos</td></tr>`;
+                    }).join('') || `<tr><td colspan="5" class="text-center py-6 text-slate-400 font-bold text-xs uppercase tracking-widest">Sin datos</td></tr>`;
                 }
 
                 if (document.getElementById('listaDashboard') && data.data) {
@@ -1147,9 +1149,10 @@ const load = async () => {
         const q = document.getElementById('search').value;
         const est = document.getElementById('filter-estado').value;
         const op = document.getElementById('filter-operador')?.value || 0;
-        const limit = Math.min(parseInt(document.getElementById('filter-limit')?.value || 200), 500);
+         const limit = Math.min(parseInt(document.getElementById('filter-limit')?.value || 200), 500);
+        const suc = document.getElementById('filter-sucursal')?.value || '';
         const isMoto = document.getElementById('filtroMoto')?.checked ? 1 : 0; // NUEVO FILTRO MOTO FETCH
-        let url = `${api_clientes}search&q=${encodeURIComponent(q)}&estado=${est}&operador_id=${op}&limit=${limit}&moto=${isMoto}`;
+        let url = `${api_clientes}search&q=${encodeURIComponent(q)}&estado=${est}&operador_id=${op}&sucursal=${encodeURIComponent(suc)}&limit=${limit}&moto=${isMoto}`;
 
         try {
             const res = await fetch(url);
@@ -1302,6 +1305,16 @@ const load = async () => {
         }
     }
 
+    function aplicarFiltroPorSucursal(nombreSucursal) {
+        document.getElementById('filter-estado').value = '';
+        document.getElementById('search').value = '';
+        if (document.getElementById('filter-operador')) document.getElementById('filter-operador').value = '0';
+        const selSuc = document.getElementById('filter-sucursal');
+        if (selSuc) selSuc.value = nombreSucursal;
+        switchTab('clientes');
+        load(); stats();
+    }
+
     window.onload = async () => { 
         if(canAssign) { 
             const res = await fetch(api_usuarios+'?action=list'); 
@@ -1315,6 +1328,22 @@ const load = async () => {
             if (mAsigDesk) mAsigDesk.innerHTML = '<option value="" class="text-gray-900">👤 Sin Asignar</option>' + opsHTML; 
             const bOp = document.getElementById('masivo_operador');
             if(bOp) bOp.innerHTML += opsHTML;
+
+            // Cargar sucursales para el filtro
+            const resSuc = await fetch('api_dashboard.php');
+            const dataSuc = await resSuc.json();
+            if (dataSuc.success && dataSuc.sucursales) {
+                const selSuc = document.getElementById('filter-sucursal');
+                if (selSuc) {
+                    dataSuc.sucursales.forEach(s => {
+                        const opt = document.createElement('option');
+                        opt.value = s.sucursal_nombre;
+                        opt.innerText = '🏢 ' + s.sucursal_nombre;
+                        selSuc.appendChild(opt);
+                    });
+                }
+            }
+
             switchTab('dashboard');
         } else { switchTab('clientes'); }
         
@@ -1372,8 +1401,9 @@ const load = async () => {
         const q = document.getElementById('search').value;
         const est = document.getElementById('filter-estado').value;
         const op = document.getElementById('filter-operador')?.value || 0;
+        const suc = document.getElementById('filter-sucursal')?.value || '';
         const isMoto = document.getElementById('filtroMoto')?.checked ? 1 : 0; // NUEVO FILTRO MOTO STATS
-        let url = `${api_clientes}stats&q=${encodeURIComponent(q)}&estado=${est}&operador_id=${op}&moto=${isMoto}`;
+        let url = `${api_clientes}stats&q=${encodeURIComponent(q)}&estado=${est}&operador_id=${op}&sucursal=${encodeURIComponent(suc)}&moto=${isMoto}`;
 
         try {
             const res = await fetch(url), d = await res.json(); 
