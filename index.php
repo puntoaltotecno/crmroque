@@ -2359,7 +2359,7 @@ const load = async () => {
                                 <span class="text-sm font-extrabold text-crm-red whitespace-nowrap">$${parseFloat(d.total_vencido).toLocaleString('es-AR')}</span>
                                 <span class="text-sm font-medium text-gray-600 hidden md:inline whitespace-nowrap">${(d.fecha_promesa && d.fecha_promesa.includes('-')) ? d.fecha_promesa.split('-').reverse().join('/') : '-'}</span>
                             </div>
-                            <button onclick="editarGestionLegajo('${d.legajo}')" class="bg-[#0284c7] text-white text-[11px] font-bold px-5 py-2 rounded-lg hover:bg-blue-600 uppercase transition-colors w-full sm:w-auto shadow-sm">Gestionar</button>
+                            <button onclick="editarGestionLegajo('${d.legajo}')" class="bg-blue-600 text-white text-[10px] font-black px-6 py-2.5 rounded-xl hover:bg-blue-700 uppercase transition shadow-md w-full sm:w-auto">Gestionar</button>
                         </div>`;
                     }).join('');
                     document.getElementById('rm-agenda-body').innerHTML = html;
