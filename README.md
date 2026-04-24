@@ -122,6 +122,18 @@ Línea de tiempo. La gestión con el ID más alto determina el "estado actual".
 
 ## 🚀 Historial de Cambios
 
+### v3.0 — Sistema de Filtrado por Sucursal y Navegación (24 de Abril, 2026)
+
+* 🏢 **Filtrado Global por Sucursal:** Se implementó un selector de sucursal en la barra de herramientas que afecta tanto al Tablero (Dashboard) como al listado de clientes, permitiendo análisis específicos por boca de cobranza.
+* ↔️ **Navegación en Modal:** Se añadieron botones "Anterior" y "Siguiente" dentro de la ficha del cliente. Esto permite a los operadores recorrer su lista de trabajo sin necesidad de cerrar y abrir el modal para cada cliente.
+* 📊 **Conexión Directa Tablero-Lista:** Al hacer clic en las métricas de "Gestiones" del Tablero, el sistema redirige automáticamente al listado de clientes aplicando los filtros correspondientes (Sucursal + Tipo de Resultado).
+
+### v2.9.2 — Precisión en Métricas y UI de Rendimiento (23 de Abril, 2026)
+
+* 🎯 **Métricas por Clientes Únicos:** Se corrigió el cálculo en "Métricas por Sucursal". Ahora el sistema cuenta legajos únicos gestionados en lugar de interacciones totales, brindando una visión real de la cobertura de cartera.
+* 📈 **Nuevas Columnas de Rendimiento:** Se incorporó el cálculo de "% Gestionados" en las tablas de estadísticas, con semáforos de color para identificar rápidamente el cumplimiento de objetivos.
+* 📱 **Optimización de Scroll:** Se eliminaron desbordamientos visuales en las tablas de reportes, asegurando una experiencia fluida en dispositivos móviles.
+
 ### v2.9.1 — Historial de Deuda y Analítica Avanzada (22 de Abril, 2026)
 
 * 📈 **Evolución de Deuda:** Implementación de la tabla `historial_deuda` y motor de snapshots automáticos durante la importación CSV. Permite visualizar la evolución del monto vencido día por día.

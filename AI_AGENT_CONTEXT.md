@@ -24,15 +24,15 @@ El proyecto está construido de manera plana. Todos los archivos se encuentran e
 3. **Operador:** Visualización bloqueada para métricas financieras globales. Solo ve su propia agenda. 
    - **Restricción de Seguridad v2.6:** El operador **NUNCA** puede categorizar clientes en estado "Al Día" por su cuenta (validado en backend y frontend). El sistema bloquea interacciones si el cliente está "Al Día".
 
-## Reglas de Negocio Vitales (v2.9.1) ⚙️
-- **v2.9.1 — Histórico y Analítica:** Se incorporó la tabla `historial_deuda` para capturar snapshots diarios/periódicos de deuda por legajo, sucursal y operador.
-- **Atribución "Al día":** Los operadores reciben crédito por los éxitos "Al día" en sus carteras asignadas, independientemente de quién ejecutó la acción (Admin/CSV), validado mediante JOINs con la tabla `asignaciones`.
-- **Evolución de Deuda:** Reportes dinámicos agrupados por Cliente, Sucursal u Operador con visualización del histórico.
-- **Filtros Globales con Límites:** Búsqueda avanzada integrada en reportes (Cliente, Operador, Fecha) con límites de visualización (Top 25/50/All) para performance.
-- **Exportación Robusta:** La exportación ignora los límites de la UI para generar archivos CSV/JSON con el 100% de los datos filtrados.
-- **Gestión de Estados:** Se mantiene el estado **'Carta'** como categoría oficial.
+## Reglas de Negocio Vitales (v3.0) ⚙️
+- **v3.0 — Filtrado por Sucursal:** Se implementó un sistema de filtrado global por sucursal en el Tablero y listado de clientes, permitiendo análisis granulares por ubicación.
+- **v2.9.2 — Métricas de Precisión:** El Tablero ahora calcula la cantidad de "Clientes Gestionados" (únicos) en lugar de gestiones totales para una medición real de cobertura de cartera.
+- **v2.9.1 — Histórico y Analítica:** Se incorporó la tabla `historial_deuda` para capturar snapshots diarios/periódicos de deuda.
+- **Atribución "Al día":** Los operadores reciben crédito por los éxitos "Al día" en sus carteras asignadas, independientemente de quién ejecutó la acción, validado mediante JOINs con `asignaciones`.
+- **Navegación Secuencial (Modal):** El modal de gestión incluye botones de "Anterior" y "Siguiente" que permiten recorrer la lista filtrada actual sin cerrar la ventana.
+- **Filtros Globales con Límites:** Búsqueda avanzada integrada en reportes con límites de visualización (Top 25/50/All).
 - **Buscador Inteligente:** Rastreo por Legajo, DNI, Razón Social, Sucursal y **Número de Teléfono** (insensible al formato).
-- **Importación CSV y Reingreso:** Los snapshots de deuda se disparan automáticamente en cada importación.
+- **Importación CSV:** Los snapshots de deuda se disparan automáticamente en cada importación.
 
 ## Directrices para el Código Asistido (LLMs) 🤖
 1. **Estilos:** Usar `TailwindCSS v2` localmente.
@@ -42,4 +42,4 @@ El proyecto está construido de manera plana. Todos los archivos se encuentran e
 5. **Comunicación:** WhatsApp unificado con detección inteligente de Web/App.
 
 ---
-*Última actualización de memoria: 2026-04-22 - Versión Operativa 2.9.1*
+*Última actualización de memoria: 2026-04-24 - Versión Operativa 3.0*
