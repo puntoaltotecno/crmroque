@@ -240,13 +240,12 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
     </nav>
 
     <main class="max-w-7xl mx-auto p-4 md:p-8 space-y-10 pb-10">
-        <div class="grid grid-cols-1 md:grid-cols-<?= $rol_usuario === 'operador' ? '2' : '4' ?> gap-4 mb-8">
-            <?php if($rol_usuario !== 'operador'): ?>
+        <?php if($rol_usuario !== 'operador'): ?>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
             <div class="bg-white p-6 rounded-xl custom-shadow text-center">
                 <h3 class="text-[10px] font-extrabold text-gray-500 mb-1 uppercase tracking-widest">Total en Calle</h3>
                 <p id="stat-deuda" class="text-2xl font-extrabold text-crm-blue">$0</p>
             </div>
-            <?php endif; ?>
             <div class="bg-white p-6 rounded-xl custom-shadow text-center">
                 <h3 class="text-[10px] font-extrabold text-gray-500 mb-1 uppercase tracking-widest">Promesas (Activas)</h3>
                 <p id="stat-promesas" class="text-3xl font-extrabold text-crm-blue">0</p>
@@ -255,13 +254,12 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
                 <h3 class="text-[10px] font-extrabold text-gray-500 mb-1 uppercase tracking-widest">Clientes (Lista Actual)</h3>
                 <p id="stat-filtrados" class="text-3xl font-extrabold text-crm-red">0</p>
             </div>
-            <?php if($rol_usuario !== 'operador'): ?>
             <div class="bg-white p-6 rounded-xl custom-shadow text-center">
                 <h3 class="text-[10px] font-extrabold text-gray-500 mb-1 uppercase tracking-widest">Total Clientes BD</h3>
                 <p id="stat-total" class="text-3xl font-extrabold text-crm-blue">0</p>
             </div>
-            <?php endif; ?>
         </div>
+        <?php endif; ?>
 
         <?php if($can_assign): ?>
         <section id="sec-dashboard" class="hidden space-y-6">
@@ -385,9 +383,11 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
                         <option value="carta">Carta</option>
                         <option value="otro">Otro</option>
                     </select>
+                    <?php if($rol_usuario !== 'operador'): ?>
                     <select id="filter-sucursal" onchange="load(); stats();" class="w-full md:flex-1 px-4 py-3 bg-white border border-gray-200 rounded-xl text-[10px] font-black uppercase outline-none shadow-sm cursor-pointer hover:bg-gray-50">
                         <option value="">Todas las Sucursales</option>
                     </select>
+                    <?php endif; ?>
 
                     <?php if($can_assign): ?>
                     <select id="filter-operador" onchange="load(); stats();" class="w-full md:flex-1 px-4 py-3 bg-white border border-gray-200 rounded-xl text-[10px] font-black uppercase outline-none shadow-sm cursor-pointer hover:bg-gray-50">
@@ -809,6 +809,22 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
 
                         <div id="tips-estado" class="hidden bg-blue-50 border border-blue-100 p-4 rounded-xl text-xs text-blue-800 transition-all duration-300">
                              <div class="flex gap-3"><span class="text-lg">💡</span><div><h5 class="font-black uppercase tracking-widest text-[8px] mb-1">Tip de Gestión</h5><p id="tips-texto" class="text-[11px] font-medium"></p></div></div>
+                        </div>
+
+                        <!-- ACCIONES RÁPIDAS -->
+                        <div class="space-y-3 pt-2">
+                            <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-1">Acciones Rápidas (Un clic)</p>
+                            <div class="flex flex-wrap gap-2">
+                                <button type="button" onclick="quickAction('no_atiende')" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[9px] font-black uppercase transition border border-slate-200 shadow-sm">📞 No atiende</button>
+                                <button type="button" onclick="quickAction('buzon')" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[9px] font-black uppercase transition border border-slate-200 shadow-sm">🔊 Buzón</button>
+                                <button type="button" onclick="quickAction('wp')" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[9px] font-black uppercase transition border border-slate-200 shadow-sm">💬 WP Enviado</button>
+                                <button type="button" onclick="quickAction('baja')" class="px-3 py-2 bg-slate-100 hover:bg-red-50 text-slate-700 rounded-lg text-[9px] font-black uppercase transition border border-slate-200 shadow-sm">🚫 De baja</button>
+                                <button type="button" onclick="quickAction('pasa_10')" class="px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg text-[9px] font-black uppercase transition border border-emerald-100 shadow-sm">🗓️ Pasa el 10</button>
+                                <button type="button" onclick="quickAction('cobra')" class="px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg text-[9px] font-black uppercase transition border border-emerald-100 shadow-sm">💰 Pasa/Cobra</button>
+                                <button type="button" onclick="quickAction('local')" class="px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg text-[9px] font-black uppercase transition border border-emerald-100 shadow-sm">🏬 Pasa Local</button>
+                                <button type="button" onclick="quickAction('refinanciar')" class="px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-[9px] font-black uppercase transition border border-blue-100 shadow-sm">🔄 Refinanciar</button>
+                                <button type="button" onclick="quickAction('equivocado')" class="px-3 py-2 bg-red-50 hover:bg-red-100 text-red-700 rounded-lg text-[9px] font-black uppercase transition border border-red-100 shadow-sm">❌ Equivocado</button>
+                            </div>
                         </div>
 
                         <textarea name="observacion" rows="4" required class="w-full p-5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none resize-none custom-scroll focus:bg-white focus:ring-4 focus:ring-crm-blue/10 transition" placeholder="Resumen de la conversación..."></textarea>
@@ -1848,6 +1864,75 @@ const load = async () => {
         load(); stats(); if (canAssign) loadDashboard();
     }
     async function cambiarAsignacionRapida(legajo, uid) { const fd = new FormData(); fd.append('legajo', legajo); fd.append('usuario_id', uid); await fetch(api_clientes+'assign', {method:'POST', body:fd}); stats(); if(canAssign) loadDashboard(); }
+
+    function quickAction(tipo) {
+        const obs = document.querySelector('textarea[name="observacion"]');
+        const est = document.getElementById('mEst');
+        const fec = document.getElementById('mFec');
+        const mon = document.getElementById('mMon');
+        
+        let text = "";
+        let state = "otro";
+        let date = null;
+
+        switch(tipo) {
+            case 'no_atiende': 
+                text = "Se intentó llamado, suena pero no responde."; 
+                state = "no_responde"; 
+                break;
+            case 'buzon': 
+                text = "Llamada derivada automáticamente a buzón de voz."; 
+                state = "no_responde"; 
+                break;
+            case 'baja': 
+                text = "Número fuera de servicio o inexistente."; 
+                state = "numero_baja"; 
+                break;
+            case 'wp': 
+                text = "Se envió notificación de deuda por WhatsApp."; 
+                state = "otro"; 
+                break;
+            case 'pasa_10': 
+                text = "Cliente promete pasar el día 10 a abonar."; 
+                state = "promesa";
+                let d10 = new Date();
+                if (d10.getDate() >= 10) d10.setMonth(d10.getMonth() + 1);
+                d10.setDate(10);
+                date = d10.toISOString().split('T')[0];
+                break;
+            case 'cobra': 
+                text = "Cliente pasa a pagar cuando perciba sus haberes."; 
+                state = "promesa";
+                let dC = new Date(); dC.setDate(dC.getDate() + 7);
+                date = dC.toISOString().split('T')[0];
+                break;
+            case 'local': 
+                text = "El cliente afirma que se acercará a la sucursal."; 
+                state = "promesa";
+                let dL = new Date(); dL.setDate(dL.getDate() + 3);
+                date = dL.toISOString().split('T')[0];
+                break;
+            case 'refinanciar': 
+                text = "Interesado en realizar un plan de refinanciación."; 
+                state = "llamar";
+                let dR = new Date(); dR.setDate(dR.getDate() + 1);
+                date = dR.toISOString().split('T')[0];
+                break;
+            case 'equivocado': 
+                text = "Número no pertenece al titular o es contacto erróneo."; 
+                state = "no_corresponde"; 
+                break;
+        }
+
+        obs.value = text;
+        est.value = state;
+        if (date) fec.value = date;
+        
+        est.dispatchEvent(new Event('change'));
+        
+        // Disparar submit del form
+        document.getElementById('gForm').requestSubmit();
+    }
     function enviarRecordatorio(msgEnc) {
         if (!window.currentClientPhones || window.currentClientPhones.length === 0) {
             alert('El cliente no tiene un número de teléfono registrado.');
