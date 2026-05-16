@@ -1,4 +1,4 @@
-# CRM.ROQUE — Sistema de Gestión de Cobranzas
+# CRM.ROQUE — Sistema de Gestión de Cobranzas v3.5
 
 Sistema web de seguimiento de cartera de clientes con asignación de operadores, historial de gestiones, panel de estadísticas (Tablero), control de accesos y filtros avanzados.
 
@@ -121,6 +121,12 @@ Línea de tiempo. La gestión con el ID más alto determina el "estado actual".
 ---
 
 ## 🚀 Historial de Cambios
+
+### v3.5 (2026-05-16): Tabla Dinámica y Filtrado Inteligente
+* **Motor de Tabla Dinámica:** Implementación de *skeleton loading*, ordenamiento por columnas (Client-side) y animaciones de entrada (*fade-in*) para una experiencia premium.
+* **Filtrado Inteligente "Al Día":** Los clientes con estado "Al Día" ahora se ocultan por defecto en la Cartera Activa para priorizar gestiones pendientes, permaneciendo accesibles desde el selector de estados.
+* **Simplificación UI:** Reducción de ruido visual en encabezados de tabla (ej: "Atraso" simplificado).
+* **Estabilidad:** Reversión completa de módulos experimentales de reportes CSV para garantizar la integridad del core.
 
 ### v3.4 (2026-04-24): Simplificación UX para Operadores
 * **Limpieza de Interfaz:** Eliminadas las tarjetas de resumen global y el filtro de sucursal para el rol de operador.

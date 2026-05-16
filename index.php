@@ -50,6 +50,17 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
         .badge-al_dia { background: #ccfbf1; color: #0f766e; }
         #bulk-actions select option { color: #1e293b; background-color: white; }
 
+        /* Skeleton Loading */
+        .skeleton { background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%); background-size: 200% 100%; animation: skeleton-loading 1.5s infinite; border-radius: 0.5rem; }
+        @keyframes skeleton-loading { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+        /* Transiciones de tabla */
+        .row-fade-in { animation: fadeIn 0.3s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        .sort-icon { font-size: 10px; margin-left: 4px; opacity: 0.5; transition: all 0.2s; }
+        .sort-active { opacity: 1; color: #0284c7; }
+
         /* Colores Emerald/Green faltantes en el bundle local */
         .bg-emerald-600 { background-color: #059669 !important; }
         .hover\:bg-emerald-700:hover { background-color: #047857 !important; }
@@ -430,12 +441,20 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
                         <thead class="bg-gray-50 border-b text-gray-400 font-extrabold uppercase text-[9px] tracking-widest">
                             <tr>
                                 <?php if($can_assign): ?>
-                                <th class="pl-6 pr-2 py-3 text-left"><input type="checkbox" onchange="toggleSelectAll(event)" class="w-4 h-4 rounded text-crm-blue bg-white border-gray-300"></th>
+                                <th class="pl-6 pr-2 py-3 text-left w-10"><input type="checkbox" onchange="toggleSelectAll(event)" class="w-4 h-4 rounded text-crm-blue bg-white border-gray-300"></th>
                                 <?php endif; ?>
-                                <th class="<?= $can_assign ? 'px-2' : 'px-6' ?> py-3 text-left whitespace-nowrap">Cliente</th>
-                                <th class="px-6 py-3 text-center whitespace-nowrap">Gestión / Atraso</th>
-                                <th class="px-6 py-3 text-right whitespace-nowrap">Vencido</th>
-                                <th class="px-6 py-3 text-center whitespace-nowrap">Asignado</th>
+                                <th onclick="setSort('razon_social')" class="cursor-pointer group <?= $can_assign ? 'px-2' : 'px-6' ?> py-3 text-left whitespace-nowrap">
+                                    <span class="flex items-center">Cliente <i id="sort-razon_social" class="sort-icon material-symbols-outlined">unfold_more</i></span>
+                                </th>
+                                <th onclick="setSort('dias_atraso')" class="cursor-pointer group px-6 py-3 text-center whitespace-nowrap">
+                                    <span class="flex items-center justify-center">Atraso <i id="sort-dias_atraso" class="sort-icon material-symbols-outlined">unfold_more</i></span>
+                                </th>
+                                <th onclick="setSort('total_vencido')" class="cursor-pointer group px-6 py-3 text-right whitespace-nowrap">
+                                    <span class="flex items-center justify-end">Vencido <i id="sort-total_vencido" class="sort-icon material-symbols-outlined">unfold_more</i></span>
+                                </th>
+                                <th onclick="setSort('operador_asignado')" class="cursor-pointer group px-6 py-3 text-center whitespace-nowrap">
+                                    <span class="flex items-center justify-center">Asignado <i id="sort-operador_asignado" class="sort-icon material-symbols-outlined">unfold_more</i></span>
+                                </th>
                                 <th class="pr-6 pl-4 py-3 text-center whitespace-nowrap w-32">Acciones</th>
                             </tr>
                         </thead>
@@ -618,13 +637,10 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
                 <div class="flex gap-0 border-b border-gray-100 overflow-x-auto custom-scroll">
                     <button onclick="cambiarReporte('ranking')" id="rep-tab-ranking" class="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400 border-b-2 border-transparent whitespace-nowrap transition hover:text-crm-blue">Ranking</button>
                     <button onclick="cambiarReporte('productividad')" id="rep-tab-productividad" class="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400 border-b-2 border-transparent whitespace-nowrap hover:text-crm-blue transition">Productividad</button>
-                    <button onclick="cambiarReporte('efectividad')" id="rep-tab-efectividad" class="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400 border-b-2 border-transparent whitespace-nowrap hover:text-crm-blue transition">Efectividad</button>
                     <button onclick="cambiarReporte('matriz')" id="rep-tab-matriz" class="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400 border-b-2 border-transparent whitespace-nowrap hover:text-crm-blue transition">Matriz</button>
                     <button onclick="cambiarReporte('clientes')" id="rep-tab-clientes" class="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400 border-b-2 border-transparent whitespace-nowrap hover:text-crm-blue transition">Top Clientes</button>
                     <button onclick="cambiarReporte('diario')" id="rep-tab-diario" class="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400 border-b-2 border-transparent whitespace-nowrap hover:text-crm-blue transition">Diario</button>
-                    <button onclick="cambiarReporte('evol_cliente')" id="rep-tab-evol_cliente" class="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400 border-b-2 border-transparent whitespace-nowrap hover:text-crm-blue transition">Ev. Cliente</button>
-                    <button onclick="cambiarReporte('evol_sucursal')" id="rep-tab-evol_sucursal" class="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400 border-b-2 border-transparent whitespace-nowrap hover:text-crm-blue transition">Ev. Sucursal</button>
-                    <button onclick="cambiarReporte('evol_operador')" id="rep-tab-evol_operador" class="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400 border-b-2 border-transparent whitespace-nowrap hover:text-crm-blue transition">Ev. Operador</button>
+                    
                 </div>
                 <div id="rep-contenido" class="p-6 md:p-8 min-h-[400px]">
                     <p class="text-center py-20 text-gray-400 font-bold text-[10px] uppercase tracking-widest">Seleccione un período para comenzar.</p>
@@ -1177,75 +1193,144 @@ $can_assign     = ($rol_usuario === 'admin' || $rol_usuario === 'colaborador');
     }
 };
 
-const load = async () => {
+    let sortConfig = { column: '', direction: 'asc' };
+
+    function setSort(col) {
+        if (sortConfig.column === col) {
+            sortConfig.direction = sortConfig.direction === 'asc' ? 'desc' : 'asc';
+        } else {
+            sortConfig.column = col;
+            sortConfig.direction = 'asc';
+        }
+
+        // Actualizar iconos
+        document.querySelectorAll('.sort-icon').forEach(i => {
+            i.innerText = 'unfold_more';
+            i.classList.remove('sort-active');
+        });
+        const icon = document.getElementById('sort-' + col);
+        if (icon) {
+            icon.innerText = sortConfig.direction === 'asc' ? 'expand_less' : 'expand_more';
+            icon.classList.add('sort-active');
+        }
+
+        renderTable(window.listaClientes);
+    }
+
+    function renderSkeleton(rows = 5) {
+        let html = '';
+        const cols = canAssign ? 6 : 5;
+        for (let i = 0; i < rows; i++) {
+            html += `<tr class="animate-pulse">
+                ${canAssign ? '<td class="pl-8 pr-2 py-5"><div class="w-4 h-4 skeleton"></div></td>' : ''}
+                <td class="px-6 py-5"><div class="h-4 w-32 skeleton mb-2"></div><div class="h-3 w-48 skeleton"></div></td>
+                <td class="px-6 py-5"><div class="h-4 w-16 skeleton mx-auto mb-2"></div><div class="h-3 w-20 skeleton mx-auto"></div></td>
+                <td class="px-6 py-5 text-right"><div class="h-5 w-24 skeleton ml-auto"></div></td>
+                <td class="px-6 py-5"><div class="h-6 w-24 skeleton mx-auto mb-2"></div><div class="h-8 w-32 skeleton mx-auto"></div></td>
+                <td class="px-8 py-5"><div class="h-10 w-full skeleton"></div></td>
+            </tr>`;
+        }
+        return html;
+    }
+
+    function renderRow(c, index) {
+        let badgeClass = `badge-${c.estado_actual}`;
+        let labelEstado = c.estado_actual === 'sin_gestion' ? 'PENDIENTE' : c.estado_actual.replace('_', ' ').toUpperCase();
+        let badgeMoto = c.moto == 1 ? `<span class="inline-flex items-center px-1.5 py-0.5 ml-2 text-[9px] font-black uppercase tracking-widest text-white bg-red-600 rounded-full animate-pulse border border-red-800 shadow-sm" title="Deuda Moto">🚨 MOTO</span>` : '';
+        let checkHTML = canAssign ? `<td class="pl-8 pr-2 py-5 text-left" onclick="event.stopPropagation()"><input type="checkbox" value="${c.legajo}" onchange="toggleSelection(event)" ${selectedLegajos.includes(c.legajo) ? 'checked' : ''} class="chk-legajo w-4 h-4 rounded text-blue-600 bg-slate-100 border-slate-300"></td>` : '';
+        let paddingLegajo = canAssign ? 'px-2' : 'px-8';
+        
+        let opBadge = canAssign ? 
+            `<select onchange="cambiarAsignacionRapida('${c.legajo}', this.value)" onclick="event.stopPropagation()" class="mt-2 w-[100px] bg-white border border-slate-200 rounded-lg text-[9px] font-black uppercase outline-none py-1 px-1">
+                <option value="">👤 Sin Asignar</option>${operadoresList.filter(o => o.activo == 1 || c.operador_id == o.id).map(o => `<option value="${o.id}" ${c.operador_id == o.id ? 'selected' : ''}>👤 ${o.nombre.split(' ')[0]}${o.activo == 0 ? ' (Off)' : ''}</option>`).join('')}
+            </select>` : 
+            `<p class="mt-2 text-[9px] font-black text-blue-500 uppercase tracking-widest">👤 ${c.operador_asignado?.split(' ')[0] || 'SIN ASIGNAR'}</p>`;
+
+        let trMonto = `$${parseFloat(c.total_vencido).toLocaleString('es-AR')}`;
+        let cJson = JSON.stringify(c).replace(/'/g, "\\'").replace(/"/g, '&quot;'); 
+        let badgeMatch = c.match_reason ? `<span class="inline-flex items-center px-1.5 py-0.5 ml-1 text-[8px] font-black uppercase tracking-widest text-slate-500 bg-slate-100 border border-slate-200 rounded shadow-sm" title="Coincidencia en ${c.match_reason}">🔍 ${c.match_reason}</span>` : '';
+
+        return `<tr class="hover:bg-blue-50/50 cursor-pointer transition row-fade-in border-l-[6px] border-l-${c.semaforo === 'blanco' ? 'transparent' : (c.semaforo === 'rojo' ? 'rose-500' : (c.semaforo === 'amarillo' ? 'amber-400' : 'emerald-500'))}" style="animation-delay: ${index * 0.05}s" onclick="openModal(${cJson})">
+            ${checkHTML}
+            <td class="${paddingLegajo} py-3 md:py-4">
+                <div class="flex flex-col gap-0.5">
+                    <p class="font-bold text-slate-800 text-xs flex items-center gap-1">${c.legajo} ${badgeMoto} ${badgeMatch}</p>
+                    <p class="text-[8px] font-bold text-slate-400 uppercase tracking-widest">${c.nro_documento}</p>
+                    <p class="font-bold uppercase text-slate-800 text-[11px] truncate max-w-[160px] md:max-w-[220px] lg:max-w-[260px]" title="${c.razon_social}">${c.razon_social}</p>
+                    <p class="text-[8px] font-bold text-blue-500 uppercase italic whitespace-nowrap">${c.sucursal || 'Central'}</p>
+                </div>
+            </td>
+            <td class="px-6 py-3 md:py-4 text-center whitespace-nowrap">
+                <p class="font-bold text-slate-800 text-xs">${c.c_cuotas} Ctas</p>
+                ${c.dias_atraso > 0 ? `<p class="text-[9px] font-black text-rose-500 uppercase">${c.dias_atraso} días</p>` : ''}
+            </td>
+            <td class="px-6 py-3 md:py-4 text-right whitespace-nowrap"><p class="font-black text-slate-900 text-sm">${trMonto}</p></td>
+            <td class="px-2 py-3 md:py-4 text-center whitespace-nowrap max-w-[140px]"><span class="px-3 py-1 rounded-full text-[9px] font-black uppercase ${badgeClass}">${labelEstado}</span><div class="flex justify-center">${opBadge}</div></td>
+            <td class="px-8 py-5 text-center">
+                <div class="flex flex-col gap-2 items-center">
+                    <button onclick="event.stopPropagation(); openModal(${cJson})" 
+                        class="bg-blue-600 text-white px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase hover:bg-blue-700 transition shadow-sm w-full font-black">
+                        Gestionar
+                    </button>
+                    ${canAssign ? `<button onclick="event.stopPropagation(); abrirABM('editar', '${c.legajo}')" 
+                        class="bg-amber-100 text-amber-700 border border-amber-200 px-5 py-2 rounded-2xl text-[10px] font-black uppercase hover:bg-amber-200 transition w-full">
+                        ✏️ Editar
+                    </button>` : ''}
+                </div>
+            </td>
+        </tr>`;
+    }
+
+    function renderTable(data) {
+        if (!data || data.length === 0) {
+            document.getElementById('lista').innerHTML = '<tr><td colspan="6" class="text-center py-20 text-slate-300 font-black tracking-widest uppercase text-xs">Sin clientes que coincidan</td></tr>';
+            return;
+        }
+
+        let dataCopy = [...data];
+        if (sortConfig.column) {
+            dataCopy.sort((a, b) => {
+                let v1 = a[sortConfig.column] || '';
+                let v2 = b[sortConfig.column] || '';
+                
+                // Conversiones numéricas para columnas de importes o días
+                if (['total_vencido', 'dias_atraso'].includes(sortConfig.column)) {
+                    v1 = parseFloat(v1); v2 = parseFloat(v2);
+                } else {
+                    v1 = String(v1).toLowerCase(); v2 = String(v2).toLowerCase();
+                }
+
+                if (v1 < v2) return sortConfig.direction === 'asc' ? -1 : 1;
+                if (v1 > v2) return sortConfig.direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+        }
+
+        document.getElementById('lista').innerHTML = dataCopy.map((c, i) => renderRow(c, i)).join('');
+    }
+
+    const load = async () => {
+        const listaEl = document.getElementById('lista');
+        listaEl.innerHTML = renderSkeleton(10);
+
         const q = document.getElementById('search').value;
         const est = document.getElementById('filter-estado').value;
         const op = document.getElementById('filter-operador')?.value || 0;
-         const limit = Math.min(parseInt(document.getElementById('filter-limit')?.value || 200), 500);
+        const limit = Math.min(parseInt(document.getElementById('filter-limit')?.value || 200), 500);
         const suc = document.getElementById('filter-sucursal')?.value || '';
-        const isMoto = document.getElementById('filtroMoto')?.checked ? 1 : 0; // NUEVO FILTRO MOTO FETCH
+        const isMoto = document.getElementById('filtroMoto')?.checked ? 1 : 0;
         let url = `${api_clientes}search&q=${encodeURIComponent(q)}&estado=${est}&operador_id=${op}&sucursal=${encodeURIComponent(suc)}&limit=${limit}&moto=${isMoto}`;
 
         try {
             const res = await fetch(url);
             const data = await res.json();
-            window.listaClientes = data; // Guardar lista para navegación en modal
-            
-            document.getElementById('lista').innerHTML = data.map(c => {
-                let badgeClass = `badge-${c.estado_actual}`;
-                let labelEstado = c.estado_actual === 'sin_gestion' ? 'PENDIENTE' : c.estado_actual.replace('_', ' ').toUpperCase();
-                
-                // NUEVO BOTÓN MOTO ROJO (se muestra si la base de datos devuelve moto=1)
-                let badgeMoto = c.moto == 1 ? `<span class="inline-flex items-center px-1.5 py-0.5 ml-2 text-[9px] font-black uppercase tracking-widest text-white bg-red-600 rounded-full animate-pulse border border-red-800 shadow-sm" title="Deuda Moto">🚨 MOTO</span>` : '';
-
-                let checkHTML = canAssign ? `<td class="pl-8 pr-2 py-5 text-left" onclick="event.stopPropagation()"><input type="checkbox" value="${c.legajo}" onchange="toggleSelection(event)" ${selectedLegajos.includes(c.legajo) ? 'checked' : ''} class="chk-legajo w-4 h-4 rounded text-blue-600 bg-slate-100 border-slate-300"></td>` : '';
-                let paddingLegajo = canAssign ? 'px-2' : 'px-8';
-
-                let opBadge = canAssign ? 
-                    `<select onchange="cambiarAsignacionRapida('${c.legajo}', this.value)" onclick="event.stopPropagation()" class="mt-2 w-[100px] bg-white border border-slate-200 rounded-lg text-[9px] font-black uppercase outline-none py-1 px-1">
-                        <option value="">👤 Sin Asignar</option>${operadoresList.filter(o => o.activo == 1 || c.operador_id == o.id).map(o => `<option value="${o.id}" ${c.operador_id == o.id ? 'selected' : ''}>👤 ${o.nombre.split(' ')[0]}${o.activo == 0 ? ' (Off)' : ''}</option>`).join('')}
-                    </select>` : 
-                    `<p class="mt-2 text-[9px] font-black text-blue-500 uppercase tracking-widest">👤 ${c.operador_asignado?.split(' ')[0] || 'SIN ASIGNAR'}</p>`;
-
-                let trMonto = `$${parseFloat(c.total_vencido).toLocaleString('es-AR')}`;
-
-                let cJson = JSON.stringify(c).replace(/'/g, "\\'").replace(/"/g, '&quot;'); 
-
-                // ETIQUETA DE COINCIDENCIA (Nueva solicitud)
-                let badgeMatch = c.match_reason ? `<span class="inline-flex items-center px-1.5 py-0.5 ml-1 text-[8px] font-black uppercase tracking-widest text-slate-500 bg-slate-100 border border-slate-200 rounded shadow-sm" title="Coincidencia en ${c.match_reason}">🔍 ${c.match_reason}</span>` : '';
-
-                return `<tr class="hover:bg-blue-50/50 cursor-pointer transition border-l-[6px] border-l-${c.semaforo === 'blanco' ? 'transparent' : (c.semaforo === 'rojo' ? 'rose-500' : (c.semaforo === 'amarillo' ? 'amber-400' : 'emerald-500'))}" onclick="openModal(${cJson})">
-                    ${checkHTML}
-                    <td class="${paddingLegajo} py-3 md:py-4">
-                        <div class="flex flex-col gap-0.5">
-                            <p class="font-bold text-slate-800 text-xs flex items-center gap-1">${c.legajo} ${badgeMoto} ${badgeMatch}</p>
-                            <p class="text-[8px] font-bold text-slate-400 uppercase tracking-widest">${c.nro_documento}</p>
-                            <p class="font-bold uppercase text-slate-800 text-[11px] truncate max-w-[160px] md:max-w-[220px] lg:max-w-[260px]" title="${c.razon_social}">${c.razon_social}</p>
-                            <p class="text-[8px] font-bold text-blue-500 uppercase italic whitespace-nowrap">${c.sucursal || 'Central'}</p>
-                        </div>
-                    </td>
-                    <td class="px-6 py-3 md:py-4 text-center whitespace-nowrap">
-                        <p class="font-bold text-slate-800 text-xs">${c.c_cuotas} Ctas</p>
-                        ${c.dias_atraso > 0 ? `<p class="text-[9px] font-black text-rose-500 uppercase">${c.dias_atraso} días</p>` : ''}
-                    </td>
-                    <td class="px-6 py-3 md:py-4 text-right whitespace-nowrap"><p class="font-black text-slate-900 text-sm">${trMonto}</p></td>
-                    <td class="px-2 py-3 md:py-4 text-center whitespace-nowrap max-w-[140px]"><span class="px-3 py-1 rounded-full text-[9px] font-black uppercase ${badgeClass}">${labelEstado}</span><div class="flex justify-center">${opBadge}</div></td>
-                    <td class="px-8 py-5 text-center">
-                        <div class="flex flex-col gap-2 items-center">
-                            <button onclick="event.stopPropagation(); openModal(${cJson})" 
-                                class="bg-blue-600 text-white px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase hover:bg-blue-700 transition shadow-sm w-full font-black">
-                                Gestionar
-                            </button>
-                            ${canAssign ? `<button onclick="event.stopPropagation(); abrirABM('editar', '${c.legajo}')" 
-                                class="bg-amber-100 text-amber-700 border border-amber-200 px-5 py-2 rounded-2xl text-[10px] font-black uppercase hover:bg-amber-200 transition w-full">
-                                ✏️ Editar
-                            </button>` : ''}
-                        </div>
-                    </td>
-                </tr>`;
-            }).join('');
+            window.listaClientes = data;
+            renderTable(data);
             updateBulkUI();
-        } catch(e) { console.error(e); }
+        } catch(e) { 
+            console.error(e);
+            listaEl.innerHTML = '<tr><td colspan="6" class="text-center py-10 text-rose-500 font-bold">Error al cargar datos</td></tr>';
+        }
     };
 
     const loadPersonal = async () => {
@@ -2106,7 +2191,8 @@ const load = async () => {
             diario: 'resumen_diario',
             evol_cliente: 'evolucion_deuda&agrupacion=cliente',
             evol_sucursal: 'evolucion_deuda&agrupacion=sucursal',
-            evol_operador: 'evolucion_deuda&agrupacion=operador'
+            evol_operador: 'evolucion_deuda&agrupacion=operador',
+
         };
 
         try {
@@ -2296,6 +2382,8 @@ const load = async () => {
             </table></div>`;
         }
 
+
+
         document.getElementById('rep-contenido').innerHTML = html;
     }
 
@@ -2308,7 +2396,8 @@ const load = async () => {
                 ranking: 'ranking_operadores', productividad: 'productividad',
                 efectividad: 'efectividad_al_dia', matriz: 'matriz_cruce',
                 clientes: 'clientes_mas_gestionados', diario: 'resumen_diario',
-                evol_cliente: 'evolucion_deuda&agrupacion=cliente', evol_sucursal: 'evolucion_deuda&agrupacion=sucursal', evol_operador: 'evolucion_deuda&agrupacion=operador'
+                evol_cliente: 'evolucion_deuda&agrupacion=cliente', evol_sucursal: 'evolucion_deuda&agrupacion=sucursal', evol_operador: 'evolucion_deuda&agrupacion=operador',
+                cobranzas: 'clientes_al_dia_con_recibo'
             };
             const qs = `fecha_desde=${filtroReportes.desde}&fecha_hasta=${filtroReportes.hasta}&op=${filtroReportes.operador}&q=${encodeURIComponent(filtroReportes.cliente)}&limit=999999`;
             const res = await fetch(`api_reportes.php?action=${mapAccion[reporteActual]}&${qs}`);

@@ -315,6 +315,9 @@ if (!empty($_GET['estado'])) {
         $where .= " AND gest.estado = :estado";
         $params[':estado'] = $_GET['estado'];
     }
+} else {
+    // v3.5: Por defecto ocultar 'al_dia' si no se filtra por un estado específico
+    $where .= " AND (gest.estado IS NULL OR gest.estado != 'al_dia')";
 }
 
 // Filtro por operador asignado

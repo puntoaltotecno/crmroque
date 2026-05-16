@@ -194,8 +194,13 @@ if ($rol === 'operador' && $estado === 'al_dia') {
 
 // ✅ Operador solo ve su cartera
 if ($rol === 'operador') {
-    $where .= " AND asignaciones.usuario_id = :uid";
+    $where .= " AND a.usuario_id = :uid";
     $params[':uid'] = $user_id;
+}
+
+// ✅ v3.5: Foco en pendientes (ocultar 'al_dia' por defecto si no se filtra por estado)
+if (empty($f_estado)) {
+    $where .= " AND (gest.estado IS NULL OR gest.estado != 'al_dia')";
 }
 ```
 

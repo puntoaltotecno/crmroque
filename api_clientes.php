@@ -107,6 +107,9 @@ try {
             $where .= " AND gest.estado = :f_estado";
             $params[':f_estado'] = $f_estado;
         }
+    } else {
+        // Por defecto, ocultar 'al_dia' si no se filtra por un estado específico
+        $where .= " AND (gest.estado IS NULL OR gest.estado != 'al_dia')";
     }
 
     // ── NUEVO: Filtro SUCURSAL ──

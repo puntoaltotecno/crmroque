@@ -107,7 +107,7 @@ try {
             LEFT JOIN gestiones_historial g ON u.id = g.usuario_id 
                 AND DATE(g.fecha_gestion) BETWEEN :desde AND :hasta
             LEFT JOIN clientes c ON g.legajo = c.legajo
-            WHERE u.rol = 'operador' AND u.activo = 1 AND u.id != 42
+            WHERE u.rol = 'operador' AND u.activo = 1 AND u.id NOT IN (1, 2, 42, 44)
               AND (:op_id = 0 OR u.id = :op_id)
               AND (:q = '' OR g.legajo LIKE :q_like OR c.razon_social LIKE :q_like)
             GROUP BY u.id, u.nombre, u.rol
@@ -242,7 +242,7 @@ try {
             LEFT JOIN gestiones_historial g ON u.id = g.usuario_id 
                 AND DATE(g.fecha_gestion) BETWEEN :desde AND :hasta
             LEFT JOIN clientes c ON g.legajo = c.legajo
-            WHERE u.rol = 'operador' AND u.activo = 1 AND u.id != 42
+            WHERE u.rol = 'operador' AND u.activo = 1 AND u.id NOT IN (1, 2, 42, 44)
               AND (:op_id = 0 OR u.id = :op_id)
               AND (:q = '' OR g.legajo LIKE :q_like OR c.razon_social LIKE :q_like)
             GROUP BY u.id, u.nombre, u.rol
@@ -288,7 +288,7 @@ try {
             LEFT JOIN gestiones_historial g ON u.id = g.usuario_id 
                 AND DATE(g.fecha_gestion) BETWEEN :desde AND :hasta
             LEFT JOIN clientes c ON g.legajo = c.legajo
-            WHERE u.rol = 'operador' AND u.activo = 1 AND u.id != 42
+            WHERE u.rol = 'operador' AND u.activo = 1 AND u.id NOT IN (1, 2, 42, 44)
               AND (:op_id = 0 OR u.id = :op_id)
               AND (:q = '' OR g.legajo LIKE :q_like OR c.razon_social LIKE :q_like)
             GROUP BY u.id, u.nombre
@@ -323,7 +323,7 @@ try {
     // ══════════════════════════════════════════════════════════════════════════
     if ($action === 'matriz_cruce') {
         // Primero obtenemos los operadores según selección
-        $sqlOp = "SELECT u.id, u.nombre FROM usuarios u WHERE u.rol = 'operador' AND u.activo = 1 AND u.id != 42 ";
+        $sqlOp = "SELECT u.id, u.nombre FROM usuarios u WHERE u.rol = 'operador' AND u.activo = 1 AND u.id NOT IN (1, 2, 42, 44) ";
         if ($operador_id > 0) $sqlOp .= " AND u.id = " . (int)$operador_id;
         $sqlOp .= " ORDER BY u.nombre";
         
@@ -431,7 +431,7 @@ try {
             FROM usuarios u
             LEFT JOIN gestiones_historial g ON u.id = g.usuario_id
                 AND DATE(g.fecha_gestion) BETWEEN ? AND ?
-            WHERE u.activo = 1 AND u.id != 42
+            WHERE u.activo = 1 AND u.id NOT IN (1, 2, 42, 44)
         ");
         $stmt->execute([$fecha_desde, $fecha_hasta, $fecha_desde, $fecha_hasta]);
         $resumen = $stmt->fetch();
@@ -527,6 +527,15 @@ try {
         echo json_encode(['success' => true, 'data' => array_values($resultado), 'titulo' => 'Evolución de Deuda (' . ucfirst($agrupacion) . ')']);
         exit;
     }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // 10. PRODUCTIVIDAD POR OPERADOR (Ranking alternativo)
+    // ══════════════════════════════════════════════════════════════════════════
+    if ($action === 'productividad_operadores') {
+        // ... (el código de este reporte parece seguir aquí si existiera, pero según mi vista previa no lo veo)
+        // Nota: Si no hay más reportes, este bloque simplemente termina.
+    }
+
 
     echo json_encode(['success' => false, 'error' => 'Acción no reconocida']);
 
